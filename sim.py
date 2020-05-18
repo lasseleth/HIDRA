@@ -57,29 +57,32 @@ del QE, optics, spec
 #test test test
 
 #### Generate new PSF: #########
-#simfun.psf_maker(res=101, wl_start=350, wl_stop=1100, delta_lambda=1)
+#simfun.psf_maker(res=101, wl_start=350, wl_stop=1100, delta_lambda=1) #can also specify path and filename
 ################################
 
-psf_file = h5py.File('psf_array.hdf5', 'a')
-psf = psf_file['psf']
+psf_file = h5py.File('psf_array.hdf5', 'a') #load in psf_file
+psf = psf_file['psf'] #fetches the psf
 
-
+'''
 #Test of image generation with psf and some star position
+####
+#image array is WAYYY to big ~320 GB. Don't do this please
+####
 
-file = h5py.File("image_array.hdf5", "a") #creates the file in which the arrays are stored
-file.create_dataset('image', (CCD_size, CCD_size, int((wl_stop-wl_start)/delta_lambda) ), dtype='f') #dataset for a CCD image, with stars etc.
-image = file['image']
+#file = h5py.File("image_array.hdf5", "a") #creates the file in which the arrays are stored
+#file.create_dataset('image', (CCD_size, CCD_size, int((wl_stop-wl_start)/delta_lambda) ), dtype='f') #dataset for a CCD image, with stars etc.
+#image = file['image']
 
-ech = int(np.floor(psf.shape[0]/2))
-ech2 = int(np.floor(psf.shape[1]/2))
-for i in range(100):
-    x_pos = np.random.randint(100, 10240-100)
-    y_pos = np.random.randint(100, 10240-100) #generates star position    
-    image[x_pos-ech:x_pos+ech, y_pos-ech2:y_pos+ech2, :] = image[x_pos-ech:x_pos+ech, y_pos-ech2:y_pos+ech2, :] + psf[0:100,0:100,:]
-    sys.stdout.write('.'); sys.stdout.flush(); #"Progress bar", just for visuals
-
-plt.imshow(image[:,:,-1])
-
+#ech = int(np.floor(psf.shape[0]/2))
+#ech2 = int(np.floor(psf.shape[1]/2))
+#for i in range(100):
+#    x_pos = np.random.randint(100, 10240-100)
+#    y_pos = np.random.randint(100, 10240-100) #generates star position    
+#    image[x_pos-ech:x_pos+ech, y_pos-ech2:y_pos+ech2, :] = image[x_pos-ech:x_pos+ech, y_pos-ech2:y_pos+ech2, :] + psf[0:100,0:100,:]
+#    sys.stdout.write('.'); sys.stdout.flush(); #"Progress bar", just for visuals
+#
+#plt.imshow(image[:,:,-1])
+'''
 
 ### Create new 3D CCD? ###
 #size = 100
