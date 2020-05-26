@@ -9,7 +9,7 @@ Created on Tue Mar 17 10:15:01 2020
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
-from scipy.interpolate import interp2d
+
 import simfun
 import sys
 import h5py
@@ -94,3 +94,53 @@ psf = psf_file['psf'] #fetches the psf
 #    sys.stdout.write('*'); sys.stdout.flush(); #"Progress bar", just for visuals 
 #np.save('CCD3D.npy', full_CCD)
 ###
+
+
+
+
+#steps=100
+#ech = np.zeros((steps,2))
+#for i in range(steps):
+#        ech[i,0], ech[i,1] = simfun.jitter(gain=1, gain2=1)
+#    
+#plt.plot(ech[:,0], ech[:,1])
+
+
+billede=np.zeros((1000,1000,750))
+x_pos = 499
+y_pos = 499
+foo = psf
+ux = int(np.floor(psf.shape[0]/2))
+ox = int(np.floor(psf.shape[0]/2)+1)
+uy = int(np.floor(psf.shape[1]/2))
+oy = int(np.floor(psf.shape[1]/2)+1)
+jitter = np.zeros((30,2))    
+for i in range(10):
+    for j in range(750):
+        billede[x_pos-ux:x_pos+ox, y_pos-uy:y_pos+oy, j] = billede[x_pos-ux:x_pos+ox, y_pos-uy:y_pos+oy, j]+foo[:,:,j]
+    x_j, y_j = simfun.jitter(gain=1.5 , gain2=2)
+    jitter[i,0] = x_j
+    jitter[i,1] = y_j
+#    plt.figure()
+#    plt.plot(x_j, y_j, 'r.')
+    x_pos = x_pos-x_j
+    y_pos = y_pos-y_j
+    x_pos = int(np.around(x_pos))
+    y_pos = int(np.around(y_pos))
+    sys.stdout.write('*'); sys.stdout.flush(); #"Progress bar", just for visuals 
+plt.figure()
+plt.imshow(billede[:,:,0])
+
+plt.figure()
+plt.plot(jitter[:,0], jitter[:,1])
+#### Exposure time #####
+
+
+
+
+
+
+
+
+
+

@@ -219,4 +219,24 @@ def psf_maker(file_path="/home/lasse/Documents/uni/Speciale/Sim/psf_array.hdf5",
     print(psf_file['psf'][0,0,0])
     
     return psf_file
-    
+
+def jitter(gain=1, amplitude_act=0.1, amplitude_sens=0.1):
+    """
+    Jitter generator
+    """
+    import numpy as np
+    jitter = np.random.randn(1,2)
+    x = 0
+    y = 0
+
+    x_new = x+jitter[0,0]
+    y_new = y+jitter[0,1]
+    x_correction = gain*(-x_new+amplitude_act*np.random.randn())+amplitude_sens*np.random.randn()
+    y_correction = gain*(-y_new+amplitude_act*np.random.randn())+amplitude_sens*np.random.randn()
+        
+    x = x_new + x_correction
+    y = y_new + y_correction
+
+    return x, y
+
+
