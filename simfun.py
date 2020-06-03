@@ -1,3 +1,4 @@
+import numpy as np
 def same_dist_elems(arr):
     """
     Smart little script to check if indices are equidistant. 
@@ -220,23 +221,74 @@ def psf_maker(file_path="/home/lasse/Documents/uni/Speciale/Sim/psf_array.hdf5",
     
     return psf_file
 
-def jitter(gain=1, amplitude_act=0.1, amplitude_sens=0.1):
+def jitter(steps=1000, dt=10, time_delay=5, gain=0.2, amplitude_act=0.1, amplitude_sens=0.1):
+    """Jitter generator
+    
+    Parameters
+    ----------
+    steps : int
+        desired number of entries in position vector
+    dt : int
+        "batch size", how many indices to run through before correction
+    time_delay : int
+        index that is subtraced from the dt'th index, used to correct for. 
+    gain : float
+        gain of correction. RoT - should be around 1/time_delay
+    amplitude_* : float
+        size of noise added under correction
+    
+    Returns
+    -------
+    x, y : array_like
+        Vectors with x and y positions, of the size specified (+1)
     """
-    Jitter generator
-    """
-    import numpy as np
-    jitter = np.random.randn(1,2)
-    x = 0
-    y = 0
-
-    x_new = x+jitter[0,0]
-    y_new = y+jitter[0,1]
-    x_correction = gain*(-x_new+amplitude_act*np.random.randn())+amplitude_sens*np.random.randn()
-    y_correction = gain*(-y_new+amplitude_act*np.random.randn())+amplitude_sens*np.random.randn()
-        
-    x = x_new + x_correction
-    y = y_new + y_correction
-
+    
+    x = np.zeros(steps+1) #Allocates  vectors for x and y position
+    y = np.zeros(steps+1)
+    k = 0
+    for j in range(int(steps/dt)):
+        jitt = np.random.randn(1,2) #Generate random noise to add to position
+        for i in range(1,dt): #Jitter will be added to position, cumulatively
+            x[k+i] = x[k+i-1]+jitt[0,0] #Takes previous position, adds jitter
+            y[k+i] = y[k+i-1]+jitt[0,1]
+            jitt = np.random.randn(1,2) #Generate new jitter, to add to next postition
+        x_correction = gain*(-x[k+i-time_delay]+amplitude_act*np.random.randn())+amplitude_sens*np.random.randn() #Generates the correction term, 
+        # but for the index "time_delay" ago - so for time_delay= 5, x[k+9-5] = x[k+4].  
+#        print(x_correction)
+        y_correction = gain*(-y[k+i-time_delay]+amplitude_act*np.random.randn())+amplitude_sens*np.random.randn()
+            
+        x[k+i+1] = x[k+i] + x_correction #correction term is added to the last entry in the small batch of "steps"
+        y[k+i+1] = y[k+i] + y_correction
+        k=k+dt #K is updated, and the whole thing runs again, this time for index +dt. 
     return x, y
 
-
+def slit(slit_size=[10,100], pos=[499, 499], img_size=[1000,1000]):
+    """ Creates a slit "mask" to overlay images.
+    
+    Parameters
+    ----------
+    slit_size : array_like, int
+        Size of slit: should be two numbers, width and height.
+    pos : array_like, int
+        Position of the slit, measured in subpixels.
+    img_size : array_like, int
+        Size of mask. Should be identical to size of the image upon which the mask is overlaid.
+        
+    Returns
+    -------
+    mask : array_like
+        Mask is zero everywhere except in the slit, where the value is 1.
+    """
+    width = slit_size[0] #Loads in size of slit
+    height = slit_size[1]
+    
+    x_low = pos[0] - width #Finds boundaries
+    x_up = pos[0] + width
+    y_low = pos[1] - height
+    y_up = pos[1] + height
+    
+    mask = np.zeros(img_size) #Creates empty mask
+    
+    mask[y_low:y_up, x_low:x_up] = mask[y_low:y_up, x_low:x_up]+1 #Fills in the slit, so that only the slit has any throughput
+    
+    return mask

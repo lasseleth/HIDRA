@@ -106,34 +106,65 @@ psf = psf_file['psf'] #fetches the psf
 #plt.plot(ech[:,0], ech[:,1])
 
 
-billede=np.zeros((1000,1000,750))
+def mag(mag_star, mag_ref):
+    return 10**(0.4*((mag_ref)-(mag_star)))
+
+#Magnitude calculator
+# Used to find the relative brightness factor of a star
+
+#
+billede=np.zeros((1000,1000))
+x_0 = 499
 x_pos = 499
-y_pos = 499
-foo = psf
+y_0 = 499
+y_pos=499
+
+x_2 = 600
+y_2 = 499
+    
+
 ux = int(np.floor(psf.shape[0]/2))
 ox = int(np.floor(psf.shape[0]/2)+1)
 uy = int(np.floor(psf.shape[1]/2))
 oy = int(np.floor(psf.shape[1]/2)+1)
-jitter = np.zeros((30,2))    
-for i in range(10):
-    for j in range(750):
-        billede[x_pos-ux:x_pos+ox, y_pos-uy:y_pos+oy, j] = billede[x_pos-ux:x_pos+ox, y_pos-uy:y_pos+oy, j]+foo[:,:,j]
-    x_j, y_j = simfun.jitter(gain=1.5 , gain2=2)
-    jitter[i,0] = x_j
-    jitter[i,1] = y_j
-#    plt.figure()
-#    plt.plot(x_j, y_j, 'r.')
-    x_pos = x_pos-x_j
-    y_pos = y_pos-y_j
+#x_j, y_j = simfun.jitter(steps=1000, gain=0.9, amplitude_act=0.9, amplitude_sens=0.9)
+#x_j, y_j = simfun.jitter(steps=1000, gain=0.01, amplitude_act=1.5, amplitude_sens=1.5)
+#x_j, y_j = simfun.jitter(steps=10000, gain=1.9, amplitude_act=0.9, amplitude_sens=0.9)
+x_j, y_j = simfun.jitter(steps=10000, gain=0.2, amplitude_act=3, amplitude_sens=3)
+##jitter = np.zeros((30,2))    
+for i in range(1000):
+    billede[x_pos-ux:x_pos+ox, y_pos-uy:y_pos+oy] = billede[x_pos-ux:x_pos+ox, y_pos-uy:y_pos+oy]+psf[:,:,0]*mag(5,0)
+    x_pos = x_0+x_j[i]
+    y_pos = y_0+y_j[i]
     x_pos = int(np.around(x_pos))
     y_pos = int(np.around(y_pos))
-    sys.stdout.write('*'); sys.stdout.flush(); #"Progress bar", just for visuals 
+    
+    billede[x_2-ux:x_2+ox, y_2-uy:y_2+oy] = billede[x_2-ux:x_2+ox, y_2-uy:y_2+oy]+psf[:,:,0]*mag(1,0)
+    
+#    sys.stdout.write('*'); sys.stdout.flush(); #"Progress bar", just for visuals 
 plt.figure()
-plt.imshow(billede[:,:,0])
+from matplotlib import cm
+norm = cm.colors.Normalize(vmax=abs(billede[:,:]).max(), vmin=abs(billede[:,:]).min())
+plt.imshow(billede, cmap='magma')
 
 plt.figure()
-plt.plot(jitter[:,0], jitter[:,1])
+plt.plot(x_j, y_j)
 #### Exposure time #####
+del ux, ox, uy, oy, x_j, y_j, x_0, y_0, x_2, y_2, x_pos, y_pos
+
+#### Slit function
+
+mask = simfun.slit(slit_size=[10,150])
+billede_masked = billede*mask
+
+plt.imshow(billede_masked, cmap="magma")
+
+
+
+
+
+
+
 
 
 
