@@ -138,7 +138,6 @@ for i in range(1000):
     y_pos = y_0+y_j[i]
     x_pos = int(np.around(x_pos))
     y_pos = int(np.around(y_pos))
-    
     billede[x_2-ux:x_2+ox, y_2-uy:y_2+oy] = billede[x_2-ux:x_2+ox, y_2-uy:y_2+oy]+psf[:,:,0]*mag(1,0)
     
 #    sys.stdout.write('*'); sys.stdout.flush(); #"Progress bar", just for visuals 
