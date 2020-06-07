@@ -292,3 +292,13 @@ def slit(slit_size=[10,100], pos=[499, 499], img_size=[1000,1000]):
     mask[y_low:y_up, x_low:x_up] = mask[y_low:y_up, x_low:x_up]+1 #Fills in the slit, so that only the slit has any throughput
     
     return mask
+
+def mag(mag_star, mag_ref=0):
+    """Calculates the brightness difference based on magnitudes
+    Parameters
+    ----------
+    mag_star : float
+        Magnitude of input star
+    mag_ref : float
+        magnitude of reference star"""
+    return 10**(0.4*((mag_ref)-(mag_star)))

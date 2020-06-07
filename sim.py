@@ -9,6 +9,7 @@ Created on Tue Mar 17 10:15:01 2020
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
+import os
 
 import simfun
 import sys
@@ -39,7 +40,7 @@ QE = np.loadtxt('QE.txt')
 optics = np.loadtxt('optics.txt')
 spec = np.loadtxt('spec2.txt', skiprows=3)
 
-CCD_size=10240 #subpix
+CCD_size=1000 #subpix
 wl_start = 350
 wl_stop = 1100
 delta_lambda = 1
@@ -53,7 +54,8 @@ QE_int = simfun.BMB_interp(QE[:,0], QE[:,1], wl_start=wl_start, wl_stop=wl_stop,
 optics_int = simfun.BMB_interp(optics[:,0], optics[:,1], wl_start=wl_start, wl_stop=wl_stop, delta_lambda=delta_lambda, kind='quadratic', lowlim=low_lim, uplim=up_lim)
 TEC = QE_int[:,1]*optics_int[:,1]
 
-del QE, optics, spec
+# del QE, optics, spec
+
 #test test test
 
 #### Generate new PSF: #########
@@ -94,33 +96,6 @@ psf = psf_file['psf'] #fetches the psf
 #    sys.stdout.write('*'); sys.stdout.flush(); #"Progress bar", just for visuals 
 #np.save('CCD3D.npy', full_CCD)
 ###
-
-
-
-
-#steps=100
-#ech = np.zeros((steps,2))
-#for i in range(steps):
-#        ech[i,0], ech[i,1] = simfun.jitter(gain=1, gain2=1)
-#    
-#plt.plot(ech[:,0], ech[:,1])
-
-
-def mag(mag_star, mag_ref):
-    return 10**(0.4*((mag_ref)-(mag_star)))
-
-#Magnitude calculator
-# Used to find the relative brightness factor of a star
-
-#
-billede=np.zeros((1000,1000))
-x_0 = 499
-x_pos = 499
-y_0 = 499
-y_pos=499
-
-x_2 = 600
-y_2 = 499
     
 
 ux = int(np.floor(psf.shape[0]/2))
@@ -130,34 +105,87 @@ oy = int(np.floor(psf.shape[1]/2)+1)
 #x_j, y_j = simfun.jitter(steps=1000, gain=0.9, amplitude_act=0.9, amplitude_sens=0.9)
 #x_j, y_j = simfun.jitter(steps=1000, gain=0.01, amplitude_act=1.5, amplitude_sens=1.5)
 #x_j, y_j = simfun.jitter(steps=10000, gain=1.9, amplitude_act=0.9, amplitude_sens=0.9)
-x_j, y_j = simfun.jitter(steps=10000, gain=0.2, amplitude_act=3, amplitude_sens=3)
-##jitter = np.zeros((30,2))    
-for i in range(1000):
-    billede[x_pos-ux:x_pos+ox, y_pos-uy:y_pos+oy] = billede[x_pos-ux:x_pos+ox, y_pos-uy:y_pos+oy]+psf[:,:,0]*mag(5,0)
-    x_pos = x_0+x_j[i]
-    y_pos = y_0+y_j[i]
-    x_pos = int(np.around(x_pos))
-    y_pos = int(np.around(y_pos))
-    billede[x_2-ux:x_2+ox, y_2-uy:y_2+oy] = billede[x_2-ux:x_2+ox, y_2-uy:y_2+oy]+psf[:,:,0]*mag(1,0)
-    
-#    sys.stdout.write('*'); sys.stdout.flush(); #"Progress bar", just for visuals 
-plt.figure()
-from matplotlib import cm
-norm = cm.colors.Normalize(vmax=abs(billede[:,:]).max(), vmin=abs(billede[:,:]).min())
-plt.imshow(billede, cmap='magma')
+x_j, y_j = simfun.jitter(steps=1000, gain=0.2, amplitude_act=3, amplitude_sens=3)
 
-plt.figure()
-plt.plot(x_j, y_j)
-#### Exposure time #####
-del ux, ox, uy, oy, x_j, y_j, x_0, y_0, x_2, y_2, x_pos, y_pos
+
+''' Test of random stars in image'''
+inp = input('Do you wish to generate random stars? (y/n) ')
+if inp == 'y':
+    billede=np.zeros((CCD_size,CCD_size))
+    #### Exposure time #####
+    exposure = 1000 #Exposure time
+    print(' ')
+    print('Number of stars complete:')
+    print('         10        20        30        40        50        60        70')
+    for i in range(30):
+        x_pos = np.random.randint(100, 900) 
+        y_pos = np.random.randint(100, 900) #generates star position 
+        # print(x_pos, ', ', y_pos)
+        x_0 = x_pos
+        y_0 = y_pos
+        
+        # plt.plot(x_pos, y_pos, 'r.')
+        magni = simfun.mag(np.random.uniform(-1, 6.5)) #Random stellar brightness
+        for i in range(exposure):
+            billede[x_pos-ux:x_pos+ox, y_pos-uy:y_pos+oy] = billede[x_pos-ux:x_pos+ox, y_pos-uy:y_pos+oy]+psf[:,:,0]*magni #adds psf values to selected area of image array
+            x_pos = x_0+x_j[i]
+            y_pos = y_0+y_j[i] #updates coordinates based on jitter
+            x_pos = int(np.around(x_pos))
+            y_pos = int(np.around(y_pos)) # rounds off the coordinates, as matrix can only take int as index
+        
+        sys.stdout.write('*'); sys.stdout.flush(); #"Progress bar", just for visuals
+        
+    if os.path.exists('/home/lasse/Documents/uni/Speciale/Sim/image_array.hdf5') == True: #If file already exists, it will be deleted
+        os.remove('/home/lasse/Documents/uni/Speciale/Sim/image_array.hdf5')
+    image_file = h5py.File('/home/lasse/Documents/uni/Speciale/Sim/image_array.hdf5', "a")
+    image_file.create_dataset('image', shape=(billede.shape[0], billede.shape[1]), dtype='f') #creates datasets in the file.
+    image_file['image'] = billede
+    
+# del ux, ox, uy, oy, x_j, y_j, x_0, y_0,  x_pos, y_pos
 
 #### Slit function
 
-mask = simfun.slit(slit_size=[10,150])
+slitwidth= 10
+slitheight=150
+slitpos = [499, 499]
+mask = simfun.slit(slit_size = [slitwidth, slitheight], pos=slitpos)
 billede_masked = billede*mask
 
-plt.imshow(billede_masked, cmap="magma")
+if os.path.exists("test"):
+  os.remove('test')
 
+
+
+
+import astropy.io.fits as fits
+hdu = fits.PrimaryHDU(billede)
+hdulist = fits.HDUList([hdu])
+hdulist.writeto('test')
+hdr = hdulist[0].header
+# hdr.set('CCD-size', CCD_size)
+hdr['CCD-size'] = (str(CCD_size)+'x'+str(CCD_size), 'Dimensions of the CCD detector')
+# hdr.set('exptime',  exposure)
+hdr['exptime'] = (exposure, 'Exposure duration (units)')
+# hdr.set('Slit-w', slitwidth)
+hdr['slit-w'] = (slitwidth, 'Width of slit')
+# hdr.set('Slit-h', slitheight)
+hdr['slit-h'] = (slitheight, 'Height of slit')
+hdr['Slit-x'] = (slitpos[0], 'x-position of slit')
+hdr['Slit-y'] = (slitpos[1], 'y-position of slit')
+# hdr['']
+
+import datetime
+day = datetime.date.today()
+time = datetime.datetime.now()
+hdr.set('date-obs', day.strftime("%m/%d/%y          "))
+hdr.set('time-obs', time.strftime("%H:%M:%          "))
+
+hdulist.close()
+
+
+plt.figure()
+plt.imshow(billede_masked, cmap="magma")
+plt.savefig('masked.png')
 
 
 
