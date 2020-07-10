@@ -8,6 +8,7 @@ Created on Tue Mar 17 10:15:01 2020
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import signal
 from scipy.interpolate import interp1d
 import os
 
@@ -137,17 +138,17 @@ if inp == 'y':
         
         sys.stdout.write('*'); sys.stdout.flush(); #"Progress bar", just for visuals
         
-    # image_file = h5py.File('/home/lasse/Documents/uni/Speciale/Sim/image_array.hdf5', "a")
+    # image_file = h5py.File('/home/lasse/Documents/uni/Thesis/Sim/image_array.hdf5', "a")
     # image_file.create_dataset('image', shape=(billede.shape[0], billede.shape[1]), dtype='f') #creates datasets in the file.
     # image_file['image'] = billede
         
-        if os.path.exists('/home/lasse/Documents/uni/Speciale/Sim/image_file.hdf5') == True: #If file already exists, it will be deleted
-            os.remove('/home/lasse/Documents/uni/Speciale/Sim/image_file.hdf5')
+        if os.path.exists('/home/lasse/Documents/uni/Thesis/Sim/image_file.hdf5') == True: #If file already exists, it will be deleted
+            os.remove('/home/lasse/Documents/uni/Thesis/Sim/image_file.hdf5')
         file = h5py.File("image_file.hdf5", "a") #creates the file in which the arrays are stored
         file.create_dataset('image', (CCD_size, CCD_size), dtype='f') #dataset for a CCD image, with stars etc.
         image = file['image']   
         image[:,:] = billede
-else: image_file = h5py.File('/home/lasse/Documents/uni/Speciale/Sim/image_file.hdf5', 'a'); billede=image_file['image']
+else: image_file = h5py.File('/home/lasse/Documents/uni/Thesis/Sim/image_file.hdf5', 'a'); billede=image_file['image']
 # del ux, ox, uy, oy, x_j, y_j, x_0, y_0,  x_pos, y_pos
 
 #### Slit function
@@ -161,11 +162,8 @@ billede_masked = billede[:,:]*mask
 if os.path.exists("test.fits"):
     os.remove('test.fits')
 
-
-
-
 import astropy.io.fits as fits
-hdu = fits.PrimaryHDU(billede)
+hdu = fits.PrimaryHDU(billede_masked)
 hdulist = fits.HDUList([hdu])
 hdulist.writeto('test.fits')
 hdr = hdulist[0].header
@@ -185,40 +183,44 @@ hdr.set('date-obs', day.strftime("%m/%d/%y          "))
 hdr.set('time-obs', time.strftime("%H:%M:%          "))
 
 hdulist.close()
-
-
-# plt.figure()
-# plt.imshow(billede_masked, cmap="magma")
-# plt.savefig('masked.png')
-
-
+### Test of random star generation ends here ####
 
 #Dispersion curve
 #Straight line, steadily increasing
-
-dispersion = 0.2*np.arange(wl_start, wl_stop, delta_lambda)-70
+dispersion = -1.15*np.arange(wl_start, wl_stop, delta_lambda)+800
 # plt.figure()
 # plt.plot(dispersion)
 
 eff = TEC*spectrum[:,1]
-#Colour loop:
+
 billede=np.zeros((CCD_size,CCD_size))
+
 magni = simfun.mag(np.random.uniform(-1, 6.5)) #Random stellar brightness
+
+
+# im_disp = simfun.disperser(billede, psf, magni, mask, eff, stepsize=125, plot='n') #A function that does the same as the following 
+# ~60 lines
+# plt.imshow(bill_disp, cmap='gray')
+
+'''
 bill_disp = np.zeros((1000,1000))
 print(' ')
 print('Number of colours complete:')
-print('         10        20        30        40        50        60        70')
-from matplotlib.colors import ListedColormap #For plotting pretty colours!
-N = 256 #8-bit value, to fix colours
-colspec = plt.cm.get_cmap('Spectral') #Fetches colourmap to use later
-vals = np.ones((N, 4)) #Simple array to store colourmap values
-plt.figure()
-# plt.imshow(bill_disp)
-for k in range(0,750):
-    # colour = spectrum[k,0]
-    
-    x_pos = 499 
-    y_pos = 499 #generates star position 
+print('         10        20        30        40        50        60        70        80        90')
+
+plot = str('n')
+
+if plot == 'y':
+    from matplotlib.colors import LinearSegmentedColormap
+    N = 256 #8-bit value, to fix colours
+    colspec = plt.cm.get_cmap('Spectral') #Fetches colourmap to use later
+    vals = np.ones((N,4))
+    fig1 = plt.figure()
+
+extent= 0, 1000, 0, 1000
+for k in range(0,750, 15):
+    x_pos = 499 #generates star position
+    y_pos = 499 #has to be here, otherwise jitter won't be applied properly
     x_0 = x_pos
     y_0 = y_pos
     for i in range(exposure):
@@ -228,33 +230,164 @@ for k in range(0,750):
         x_pos = int(np.around(x_pos))
         y_pos = int(np.around(y_pos)) # rounds off the coordinates, as matrix can only take int as index
     billede_masked = billede[:,:]*mask #Overlay slit mask
-    bill_disp = bill_disp+(np.roll(billede_masked, int(dispersion[k]), axis=1)*eff[k])+np.random.standard_normal((1000, 1000))*0.001 #Disperses the colours, using np.roll
-    # noise2 = 
-    sys.stdout.write('/'); sys.stdout.flush(); #"Progress bar", just for visuals
+    roll = np.roll(billede_masked, int(dispersion[k]), axis=1)*eff[k]
+    # bill_disp = bill_disp+(np.roll(billede_masked, int(dispersion[k]), axis=1)*eff[k])+np.random.standard_normal((1000, 1000))*0.001 #Disperses the colours, using np.roll
+    bill_disp = bill_disp + roll + np.random.standard_normal((1000, 1000))*0.001 #Disperses the colours, using np.roll
     
-    vals[:, 0] = np.linspace(0, colspec(k)[0], N) #Making new colourmap values
-    vals[:, 1] = np.linspace(0, colspec(k)[1], N)
-    vals[:, 2] = np.linspace(0, colspec(k)[2], N)
-    newcmp = ListedColormap(vals) #Generate new colourmap based on vals
+    # bill_disp = (np.roll(billede_masked, int(dispersion[k]), axis=1)*eff[k])+np.random.standard_normal((1000, 1000))*0.001 #Disperses the colours, using np.roll
     
-    plt.imshow(bill_disp, cmap=newcmp) # Show array, doesn't work as intended... 
-    # plt.draw()
+    sys.stdout.write('/'); sys.stdout.flush(); #"Progress bar", just for visuals    
     
-if os.path.exists("spectrum.fits"):
+    ##### Plotting #####
+    if plot == 'y':
+        vals[:, 0] = np.linspace(0, colspec(1-k/750)[0], N) #Making new colourmap values
+        vals[:, 1] = np.linspace(0, colspec(1-k/750)[1], N) #the /750 is to normalize the colormap, so values fall between 0 and 1
+        vals[:, 2] = np.linspace(0, colspec(1-k/750)[2], N)
+        vals[:, 3] = np.linspace(0, 1, N) #alpha, for making the cmap transparent
+        newcmp = LinearSegmentedColormap.from_list(name='Spectral', colors=vals) #Creates new cmp, based on vals    
+        im = plt.imshow(roll, cmap=newcmp, extent=extent) # Show array
+    
+    
+    # vals[:, 0] = np.linspace(0, colspec(1-k/750)[0], N) #Making new colourmap values
+    # vals[:, 1] = np.linspace(0, colspec(1-k/750)[1], N) #the /750 is to normalize the colormap, so values fall between 0 and 1
+    # vals[:, 2] = np.linspace(0, colspec(1-k/750)[2], N)
+    # vals[:, 3] = np.linspace(0, 1, N) #alpha, for making the cmap transparent
+    # newcmp = LinearSegmentedColormap.from_list(name='Spectral', colors=vals) #Creates new cmp, based on vals    
+    # im = plt.imshow(roll, cmap=newcmp, extent=extent) # Show array
+if plot == 'y':
+    plt.title('Color dispersion of sample spectrum', size=18)
+    plt.xlabel('Sub-pixel', size=13)
+    plt.ylabel('Sub-pixel', size=13)
+    plt.savefig('disp.png', dpi=400)
+
+
+'''
+if os.path.exists("spectrum.fits"): #Iff old files exist, replace by the new one
     os.remove('spectrum.fits')
 
-hdu = fits.PrimaryHDU(bill_disp)
-hdulist = fits.HDUList([hdu])
-hdulist.writeto('spectrum.fits')
-hdr = hdulist[0].header
-# hdr.set('CCD-size', CCD_size)
-hdr['CCD-size'] = ('1000'+'x'+str(1000), 'Dimensions of the CCD detector')
-hdr['exptime'] = (exposure, 'Exposure duration (units)')
-hdr['slit-w'] = (slitwidth, 'Width of slit')
-hdr['slit-h'] = (slitheight, 'Height of slit')
-hdr['Slit-x'] = (slitpos[0], 'x-position of slit')
-hdr['Slit-y'] = (slitpos[1], 'y-position of slit')
-hdr['mask'] = ('yes', 'Include slit, y/n')
-hdr['Disp'] = ('yes', 'Include dispersion, y/n')
+# hdu = fits.PrimaryHDU(im_disp)
+# hdulist = fits.HDUList([hdu])
+# hdulist.writeto('spectrum.fits')
+# hdr = hdulist[0].header
+
+# # Add information in header
+# hdr['CCD-size'] = ('1000'+'x'+str(1000), 'Dimensions of the CCD detector')
+# hdr['exptime'] = (exposure, 'Exposure duration (units)')
+# hdr['slit-w'] = (slitwidth, 'Width of slit')
+# hdr['slit-h'] = (slitheight, 'Height of slit')
+# hdr['Slit-x'] = (slitpos[0], 'x-position of slit')
+# hdr['Slit-y'] = (slitpos[1], 'y-position of slit')
+# hdr['mask'] = ('yes', 'Include slit, y/n')
+# hdr['Disp'] = ('yes', 'Include dispersion, y/n')
+
+'''
+jitter = simfun.jitter_im(x= x_j, y= y_j, psf_size=(psf[:,:,0].shape[0], psf[:,:,0].shape[0]) )#Creating jitter "image"
+# folded = simfun.folding(psf[:,:,0], jitter)
+# plt.figure()
+# # plt.plot(y_j.astype(int)+50, x_j.astype(int)+50, 'r-') #+50 to move the jitter to the correct position
+# plt.imshow(folded)
+# plt.imshow(jitter, alpha=0.5)
+# plt.plot(y_j.mean()+50, x_j.mean()+50)
+x_pos=slitpos[0]
+y_pos=slitpos[1]
+im_disp = np.zeros((1000,1000))
+im = np.zeros((1000,1000))
+from matplotlib.colors import LinearSegmentedColormap
+N = 256 #8-bit value, to fix colours
+colspec = plt.cm.get_cmap('Spectral') #Fetches colourmap to use later
+vals = np.ones((N,4))
+plot='n'
+if plot=='y':
+    fig1 = plt.figure()
+for i in range(0,750):
+    fold = simfun.folding(psf[:,:,i], jitter)
+    foo = int(psf.shape[0]/2)
+    im[0+x_pos-foo:len(jitter)+x_pos-foo, 0+y_pos-foo:len(jitter)+y_pos-foo] = im[0+x_pos-foo:len(jitter)+x_pos-foo, 0+y_pos-foo:len(jitter)+y_pos-foo] + fold*magni
+    immask = im*mask
+    roll = np.roll(immask, int(dispersion[i]), axis=1)*eff[i]
+    im_disp = im_disp + roll #+ np.random.standard_normal((1000, 1000))*0.001 #Disperses the colours, using np.roll
+    
+    sys.stdout.write('/'); sys.stdout.flush(); #"Progress bar", just for visuals    
+    
+    ##### Plotting #####
+    if plot == 'y':
+        vals[:, 0] = np.linspace(0, colspec(i/750)[0], N) #Making new colourmap values
+        vals[:, 1] = np.linspace(0, colspec(i/750)[1], N) #the /750 is to normalize the colormap, so values fall between 0 and 1
+        vals[:, 2] = np.linspace(0, colspec(i/750)[2], N)
+        vals[:, 3] = np.linspace(0, 1, N) #alpha, for making the cmap transparent
+        newcmp = LinearSegmentedColormap.from_list(name='Spectral', colors=vals) #Creates new cmp, based on vals    
+        plt.imshow(roll, cmap=newcmp) # Show array    
+
+counts=np.array(())
+for i in range(750):
+    counts = np.append(counts, np.sum(im_disp[:,i]))
+plt.figure(); plt.plot(counts/counts.max())
+'''
+
+
+
+
+
+
+
+
+def disperser2(jitter, psf, pos, image_size, dispersion, eff, magni, steps=50, plot='n'):
+    # jitter = simfun.jitter_im(x= x_j, y= y_j, psf_size=(psf[:,:,0].shape[0], psf[:,:,0].shape[0]) )#Creating jitter "image"
+    x_pos=pos[0]
+    y_pos=pos[1]
+    im_disp = np.zeros((1000,1000))
+    im = np.zeros((1000,1000))
+    from matplotlib.colors import LinearSegmentedColormap
+    N = 256 #8-bit value, to fix colours
+    colspec = plt.cm.get_cmap('Spectral') #Fetches colourmap to use later
+    vals = np.ones((N,4))
+    # plot='n'
+    if plot=='y':
+        plt.figure()
+    for i in range(0,750, steps):
+        fold = simfun.folding(psf[:,:,i], jitter)
+        foo = int(psf.shape[0]/2)
+        im[0+x_pos-foo:len(jitter)+x_pos-foo, 0+y_pos-foo:len(jitter)+y_pos-foo] = im[0+x_pos-foo:len(jitter)+x_pos-foo, 0+y_pos-foo:len(jitter)+y_pos-foo] + fold*magni
+        immask = im*mask
+        roll = np.roll(immask, int(dispersion[i]), axis=1)*eff[i]
+        im_disp = im_disp + roll #+ np.random.standard_normal((1000, 1000))*0.001 #Disperses the colours, using np.roll
+        
+        sys.stdout.write('/'); sys.stdout.flush(); #"Progress bar", just for visuals    
+        
+        ##### Plotting #####
+        if plot == 'y':
+            vals[:, 0] = np.linspace(0, colspec(i/750)[0], N) #Making new colourmap values
+            vals[:, 1] = np.linspace(0, colspec(i/750)[1], N) #the /750 is to normalize the colormap, so values fall between 0 and 1
+            vals[:, 2] = np.linspace(0, colspec(i/750)[2], N)
+            vals[:, 3] = np.linspace(0, 1, N) #alpha, for making the cmap transparent
+            newcmp = LinearSegmentedColormap.from_list(name='Spectral', colors=vals) #Creates new cmp, based on vals    
+            plt.imshow(roll, cmap=newcmp) # Show array    
+    
+    if plot=='y':
+        plt.title('Color dispersion of sample spectrum', size=18)
+        plt.xlabel('Sub-pixel', size=13)
+        plt.ylabel('Sub-pixel', size=13)
+    counts=np.array(())
+    for i in range(750):
+        counts = np.append(counts, np.sum(im_disp[:,i]))
+    if plot=='y': plt.figure(); plt.plot(counts/counts.max())
+
+    return im_disp
+
+# test=disperser2(jitter, psf, pos=slitpos, image_size=(1000,1000), dispersion=dispersion, eff=eff, magni=magni, steps=125, plot='y')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

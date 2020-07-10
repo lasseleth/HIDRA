@@ -181,7 +181,7 @@ def PSF(sigma_x=1, sigma_y=1, res=100, x_size=30, y_size=30, x0=0, y0=0):
     return x, y, z
 
 
-def psf_maker(file_path="/home/lasse/Documents/uni/Speciale/Sim/psf_array.hdf5", res=101, wl_start=350, wl_stop=1100, delta_lambda=1):    
+def psf_maker(file_path="/home/lasse/Documents/uni/Thesis/Sim/psf_array.hdf5", res=101, wl_start=350, wl_stop=1100, delta_lambda=1):    
     #Load packages
     import h5py #package for handling the upcoming HUGE arrays, that the RAM won't be able to handle
     import numpy as np
@@ -216,10 +216,10 @@ def psf_maker(file_path="/home/lasse/Documents/uni/Speciale/Sim/psf_array.hdf5",
     
     print(' ')
     print('psf done')
-    del psf_temp, f_test, x, y, z, ran
+    del psf_temp, f_test, ran#, x, y, z, ran
     print(psf_file['psf'][0,0,0])
     
-    return psf_file
+    return  psf_file
 
 def jitter(steps=1000, dt=10, time_delay=5, gain=0.2, amplitude_act=0.1, amplitude_sens=0.1):
     """Jitter generator
@@ -302,3 +302,93 @@ def mag(mag_star, mag_ref=0):
     mag_ref : float
         magnitude of reference star"""
     return 10**(0.4*((mag_ref)-(mag_star)))
+
+def disp_func(wl_start, wl_stop, delta_lambda):
+    return 1.15*np.arange(wl_start, wl_stop, delta_lambda)-800
+
+def disperser(image, psf, magni, mask, eff, dispers=(350, 1100, 1), CCDsize=(1000,1000), cols=(0, 750), stepsize=5, exposure=100, plot='n', save='n'):
+    import sys
+    if plot == 'y':
+        import matplotlib.pyplot as plt
+        from matplotlib.colors import LinearSegmentedColormap
+        N = 256 #8-bit value, to fix colours
+        colspec = plt.cm.get_cmap('Spectral') #Fetches colourmap to use later
+        vals = np.ones((N,4))
+        plt.figure()
+    
+    im_disp = np.zeros(CCDsize)
+    x_j, y_j = jitter(steps=100, gain=0.2, amplitude_act=3, amplitude_sens=3)
+    ux = int(np.floor(psf.shape[0]/2))
+    ox = int(np.floor(psf.shape[0]/2)+1)
+    uy = int(np.floor(psf.shape[1]/2))
+    oy = int(np.floor(psf.shape[1]/2)+1)
+    
+    wl_start = dispers[0]
+    wl_stop = dispers[1]
+    delta_lambda = dispers[2]
+    dispersion=disp_func(wl_start, wl_stop, delta_lambda)
+    print(' ')
+    print('Number of colours complete:')
+    print('         10        20        30        40        50        60        70        80        90')
+    for k in range(cols[0],cols[1], stepsize):
+        x_pos = 499 #generates star position
+        y_pos = 499 #has to be here, otherwise jitter won't be applied properly
+        x_0 = x_pos
+        y_0 = y_pos
+        for i in range(exposure):
+            image[x_pos-ux:x_pos+ox, y_pos-uy:y_pos+oy] = image[x_pos-ux:x_pos+ox, y_pos-uy:y_pos+oy]+psf[:,:,k]*magni #adds psf values to selected area of image array
+            x_pos = x_0+x_j[i]
+            y_pos = y_0+y_j[i] #updates coordinates based on jitter
+            x_pos = int(np.around(x_pos))
+            y_pos = int(np.around(y_pos)) # rounds off the coordinates, as matrix can only take int as index
+        image_masked = image[:,:]*mask #Overlay slit mask
+        roll = np.roll(image_masked, int(dispersion[k]), axis=1)*eff[k]
+        im_disp = im_disp + roll + np.random.standard_normal((1000, 1000))*0.001 #Disperses the colours, using np.roll
+        
+        sys.stdout.write('/'); sys.stdout.flush(); #"Progress bar", just for visuals    
+        
+        ##### Plotting #####
+        if plot == 'y':
+            vals[:, 0] = np.linspace(0, colspec(1-k/750)[0], N) #Making new colourmap values
+            vals[:, 1] = np.linspace(0, colspec(1-k/750)[1], N) #the /750 is to normalize the colormap, so values fall between 0 and 1
+            vals[:, 2] = np.linspace(0, colspec(1-k/750)[2], N)
+            vals[:, 3] = np.linspace(0, 1, N) #alpha, for making the cmap transparent
+            newcmp = LinearSegmentedColormap.from_list(name='Spectral', colors=vals) #Creates new cmp, based on vals    
+            plt.imshow(roll, cmap=newcmp) # Show array
+        
+    if plot == 'y':
+        plt.title('Color dispersion of sample spectrum', size=18)
+        plt.xlabel('Sub-pixel', size=13)
+        plt.ylabel('Sub-pixel', size=13)
+    if save == 'y':
+        plt.savefig('disp.png', dpi=400)    
+    return im_disp
+
+
+def jitter_im(x, y, psf_size):
+    ''' Creates a jitter "image" - a matrix of the same dimensions (x & y) as the psf, used in the folding function
+    NOTE: Will round of the position of the jitter to nearest subpixel!
+
+    Parameters
+    ----------
+    x : array
+        Input jitter x-coord.
+    y : array
+        Input jitter y-coord.
+    psf_size : int, two values
+        Size of the psf.
+
+    Returns
+    -------
+    jitter : array
+        Jitter image, where each point where the jitter "stops" has a +1 value. All other points are zero.
+    '''
+    jitter=np.zeros(psf_size) # Setup image
+    for i in range(len(x)):
+        jitter[x[i].astype(int)+int(np.floor(psf_size[0]/2)), y[i].astype(int)+int(np.floor(psf_size[1]/2))]= jitter[x[i].astype(int)+int(np.floor(psf_size[0]/2)), y[i].astype(int)+int(np.floor(psf_size[1]/2))]+1 # Create jitter "image". +1 to every point where the jitter "hits"
+    return jitter
+
+def folding(psf_image, jitter_image):
+    from scipy import signal
+    folded=signal.convolve2d(psf_image, jitter_image, mode='same', boundary='fill') #convolves the psf slice and the jitter image
+    return folded

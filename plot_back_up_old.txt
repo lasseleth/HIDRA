@@ -1,0 +1,45 @@
+colspec = plt.cm.get_cmap('Spectral') #Fetches colourmap to use later
+vals = np.ones((N, 4, 750)) #Simple array to store colourmap values
+# plt.figure()
+# plt.imshow(bill_disp)
+extent= 0, 1000, 0, 1000
+im = plt.imshow(bill_disp, extent = extent)
+
+for k in range(0,750,125):
+    # colour = spectrum[k,0]
+    
+    x_pos = 499 
+    y_pos = 499 #generates star position 
+    x_0 = x_pos
+    y_0 = y_pos
+    for i in range(exposure):
+        billede[x_pos-ux:x_pos+ox, y_pos-uy:y_pos+oy] = billede[x_pos-ux:x_pos+ox, y_pos-uy:y_pos+oy]+psf[:,:,k]*magni #adds psf values to selected area of image array
+        x_pos = x_0+x_j[i]
+        y_pos = y_0+y_j[i] #updates coordinates based on jitter
+        x_pos = int(np.around(x_pos))
+        y_pos = int(np.around(y_pos)) # rounds off the coordinates, as matrix can only take int as index
+    billede_masked = billede[:,:]*mask #Overlay slit mask
+    roll = np.roll(billede_masked, int(dispersion[k]), axis=1)*eff[k]
+    # bill_disp = bill_disp+(np.roll(billede_masked, int(dispersion[k]), axis=1)*eff[k])+np.random.standard_normal((1000, 1000))*0.001 #Disperses the colours, using np.roll
+    bill_disp = bill_disp + roll + np.random.standard_normal((1000, 1000))*0.001 #Disperses the colours, using np.roll
+    
+    # bill_disp = (np.roll(billede_masked, int(dispersion[k]), axis=1)*eff[k])+np.random.standard_normal((1000, 1000))*0.001 #Disperses the colours, using np.roll
+    
+    sys.stdout.write('/'); sys.stdout.flush(); #"Progress bar", just for visuals
+    
+    vals[:, 0, k] = np.linspace(0, colspec(k)[0], N) #Making new colourmap values
+    vals[:, 1, k] = np.linspace(0, colspec(k)[1], N)
+    vals[:, 2, k] = np.linspace(0, colspec(k)[2], N)
+    
+    
+    # vals[:, 0] = np.linspace(0, colspec(k)[0], N) #Making new colourmap values
+    # vals[:, 1] = np.linspace(0, colspec(k)[1], N)
+    # vals[:, 2] = np.linspace(0, colspec(k)[2], N)
+    newcmp = ListedColormap(vals[:,:,k]) #Generate new colourmap based on vals
+    index=np.nonzero(roll)
+    im = plt.imshow(roll, cmap=newcmp)
+    # im = plt.imshow(roll[index[0][0]:index[0][-1], index[1][0]:index[1][-1] ], cmap=newcmp) # Show array, doesn't work as intended... 
+    # imshows plots the "roll" matrix = data surrounded by zeros. The next roll will also have the zeros, 
+    # and they will overlap the previous data, washing it away...
+    
+    
