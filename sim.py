@@ -328,15 +328,16 @@ plt.figure(); plt.plot(counts/counts.max())
 
 
 
+mask = simfun.slit(slit_size = [slitwidth, slitheight], pos=slitpos, img_size=[10240, 10240])
 
-
+jitter = simfun.jitter_im(x= x_j, y= y_j, psf_size=(psf[:,:,0].shape[0], psf[:,:,0].shape[0]) )#Creating jitter "image"
 
 def disperser2(jitter, psf, pos, image_size, dispersion, eff, magni, steps=50, plot='n'):
     # jitter = simfun.jitter_im(x= x_j, y= y_j, psf_size=(psf[:,:,0].shape[0], psf[:,:,0].shape[0]) )#Creating jitter "image"
     x_pos=pos[0]
     y_pos=pos[1]
-    im_disp = np.zeros((1000,1000))
-    im = np.zeros((1000,1000))
+    im_disp = np.zeros((10240,10240))
+    im = np.zeros((10240,10240))
     from matplotlib.colors import LinearSegmentedColormap
     N = 256 #8-bit value, to fix colours
     colspec = plt.cm.get_cmap('Spectral') #Fetches colourmap to use later
