@@ -91,7 +91,8 @@ def BMB_interp(x, y, wl_start=300, wl_stop=1200, delta_lambda=0.01, kind='cubic'
 
 def CCD_maker(CCD_size, subpix=10, var=0.05, var2=0.05, grid_loss=0.6, smooth=5):
     """
-    This function creates a CCD composed of subpixels, with a separating grid between all full pixels. The grid will have some loss.
+    This function creates a CCD composed of subpixels, with a separating grid between all full pixels. 
+    The grid will have some loss.
     
     Parameters
     ----------
@@ -156,10 +157,10 @@ def CCD_maker(CCD_size, subpix=10, var=0.05, var2=0.05, grid_loss=0.6, smooth=5)
     CCD2 = CCD2+noise2+1
     
     CCD = CCD2*grid #overlays the grid on the CCD
-    
+    CCD = CCD/np.mean(CCD)
     return CCD
 
-def PSF(sigma_x=1, sigma_y=1, res=100, x_size=30, y_size=30, x0=0, y0=0):
+def PSF(sigma_x, sigma_y, res=100, x_size=30, y_size=30, x0=0, y0=0):
     """This function creates a mesh of the PSF as a 2D Gaussian
     Parameters
     ----------
@@ -178,48 +179,151 @@ def PSF(sigma_x=1, sigma_y=1, res=100, x_size=30, y_size=30, x0=0, y0=0):
     x, y = np.meshgrid(x, y) #define meshgrid
     z = (1/(2*np.pi*sigma_x*sigma_y) * np.exp(-((x)**2/(2*sigma_x**2) 
          + (y)**2/(2*sigma_y**2)))) #2 Gaussian functions
+    z = z/np.sum(z)
     return x, y, z
 
 
-def psf_maker(file_path="/home/lasse/Documents/uni/Thesis/Sim/psf_array.hdf5", res=101, wl_start=350, wl_stop=1100, delta_lambda=1):    
+def psf_maker(res=101, wl_start=350, wl_stop=1100, si=[30, 30]): 
+    """
+    Creates 10 psf's. Mainly for quickly testing the psf-interpolator.
+
+    Parameters
+    ----------
+    res : int, optional
+        Size of the psf. The default is 101.
+    wl_start : int, optional
+        Start wavelength. The default is 350.
+    wl_stop : int, optional
+        Stop wavelength. The default is 1100.
+    si : TYPE, optional
+        DESCRIPTION. The default is [30, 30].
+
+    Returns
+    -------
+    psf_temp : array
+        PSF to interpolate.
+    ran : array
+        List of corresponding wavelengths. Each entry is the wavelength of the PSF slice in psf_temp
+    """
     #Load packages
-    import h5py #package for handling the upcoming HUGE arrays, that the RAM won't be able to handle
     import numpy as np
-    import sys
-    from scipy.interpolate import interp1d
-    import os
-    
-    if os.path.exists(file_path) == True: #If file already exists, it will be deleted
-        os.remove(file_path)
-    
-    #and then remade
-    psf_file = h5py.File(file_path, "a")
-    psf_file.create_dataset('psf', ( res, res, int((wl_stop-wl_start)/delta_lambda) ), dtype='f') #creates datasets in the file. 
-    #This is for the PSF generated a bit later
-    
-    psf   = psf_file['psf']
 
     ran = np.linspace(wl_start, wl_stop, 10) #set for loop index
     foo = np.zeros((res, res)) #create empty grid to store in the psf
     for i in ran:
-        x, y, z = PSF(sigma_x=np.log(i+2), sigma_y=np.log(i+2), res=res) #2D Gaussian
+        sigma_x = np.log(i)+0.5*i/100 # Used in the 2D Gaussian
+        sigma_y = np.log(i)+0.5*i/100
+        x, y, z = PSF(sigma_x, sigma_y, res=res, x_size=si[0], y_size=si[1]) #2D Gaussian
         foo = np.dstack((foo,z)) #appends the new psf to the 3d matrix
     psf_temp = foo[:,:,1:ran.shape[0]+1] #cuts off the initial layer of 0's
-    del foo
-
-
-    for i in range(res):
-        for j in range(res):
-            f_test = interp1d(ran/delta_lambda, psf_temp[i,j,:], kind='quadratic') #sets up interpolation
-            psf[i,j,:] = f_test(range(int(wl_start/delta_lambda), int(wl_stop/delta_lambda))) # interpolates at the wavelengths specified in the range
-        sys.stdout.write('.'); sys.stdout.flush(); #"Progress bar", just for visuals
-    
+    del foo    
     print(' ')
     print('psf done')
-    del psf_temp, f_test, ran#, x, y, z, ran
-    print(psf_file['psf'][0,0,0])
+    return  psf_temp, ran
+
+def PSF2(file_name, wl_endpoints=(350, 1100), res=101, size=(100, 100), step=1):
+    """
+    Creates a new file containing the full-color PSF, without interpolating as with psf_maker
+
+    Parameters
+    ----------
+    file_name : str
+        Desired name of the file.
+    wl_endpoints : tuple, optional
+        Two values that mark the first and last colors. The default is (350, 1100).
+    res : int, optional
+        Resolution of the PSF. The default is 100.
+    size : tuple, optional
+        Size of the meshgrid used in the 2D Gaussian. Just a tweakable parameter. The default is (100, 100).
+    step : int, optional
+        Number of color steps. The default is 1.
+
+    Returns
+    -------
+    .npy and .hdf5 files containing the PSF
+    """
     
-    return  psf_file
+    import os
+    import numpy as np
+    import h5py
+    
+    path = os.getcwd() #Get current working directory
+    file_path = path + "/" + file_name +".hdf5" #Set up path to save file later
+    ''' 
+    numColors = int( (wl_endpoints[1]-wl_endpoints[0])/step) # Number of colors
+    x_size = size[0]
+    y_size = size[1] #Extracts from the size input
+    
+    z = np.float128(np.zeros((res, res, numColors))) # Setup empty array for PSF-slices
+    
+    x = np.float128(np.linspace(-x_size, x_size, res)) #Preparation for meshgrid
+    y = np.float128(np.linspace(-y_size, y_size, res))
+    xx, yy = np.meshgrid(x, y) #define meshgrid
+    
+    for i in range(wl_endpoints[0], wl_endpoints[1], step): # for-loop to create one psf for each color
+        sigma_x = np.float128(np.log(i)+0.5*i/100) # Used in the 2D Gaussian
+        sigma_y = np.float128(np.log(i)+0.5*i/100)
+    
+        # 2D Gaussian function, that takes sigma_x and _y as input variables. Also takes in the meshgrid xx and yy
+    
+        zz = (1/(2*np.pi*sigma_x*sigma_y) * np.exp(-((xx)**2/(2*sigma_x**2) 
+             + (yy)**2/(2*sigma_y**2))))    
+    
+        zz = zz/np.sum(zz) # Normalizes, so the total value (the sum of the array) =1
+        z[:,:,i-350] = zz # put psf-"slice" into larger 3D array    
+    
+    '''
+    numColors = int( (wl_endpoints[1]-wl_endpoints[0])/step) # Number of colors
+    x_size = size[0]
+    y_size = size[1] #Extracts from the size input
+    
+    z = np.zeros((res, res, numColors)) # Setup empty array for PSF-slices
+    
+    x = np.linspace(-x_size, x_size, res) #Preparation for meshgrid
+    y = np.linspace(-y_size, y_size, res)
+    xx, yy = np.meshgrid(x, y) #define meshgrid
+    
+    for i in range(wl_endpoints[0], wl_endpoints[1], step): # for-loop to create one psf for each color
+        sigma_x = np.log(i)+0.5*i/100 # Used in the 2D Gaussian
+        sigma_y = np.log(i)+0.5*i/100
+    
+        # 2D Gaussian function, that takes sigma_x and _y as input variables. Also takes in the meshgrid xx and yy
+    
+        zz = (1/(2*np.pi*sigma_x*sigma_y) * np.exp(-((xx)**2/(2*sigma_x**2) 
+             + (yy)**2/(2*sigma_y**2))))    
+        
+        zz = zz/np.sum(zz) # Normalizes, so the total value (the sum of the array) =1
+        z[:,:,i-350] = zz # put psf-"slice" into larger 3D array
+    
+    if os.path.exists(file_path) == True: #If file already exists, it will be deleted
+        os.remove(file_path)
+        
+    # Saving the psf as a hdf5 file in order to store the large file, using h5py
+    psf_file = h5py.File(file_path, "a")
+    psf_file.create_dataset('psf', data=z, dtype='f') # Place dataset in the .hdf5 file
+
+    np.save(file_name + "_raw.npy", z) #Save as .npy binary file
+
+    return print("New PSF done, saved as", file_name, ".npy")
+
+def psf_interp(input_psf_images, input_psf_wl, wl_endpoints=(350, 1100), delta_lambda=1):    
+    import sys
+    from scipy.interpolate import interp1d
+    
+    ran = range(wl_endpoints[0], wl_endpoints[1], delta_lambda) #set for-loop range
+    res = input_psf_images.shape[0] # Width of the input psf, so the created psf will have the same size
+
+    psf = np.zeros((input_psf_images.shape[0], input_psf_images.shape[1], wl_endpoints[1]-wl_endpoints[0])) #Creates empty array for the new psf
+    for i in range(res):
+        for j in range(res):
+            f_test = interp1d(input_psf_wl, input_psf_images[i,j,:], kind='quadratic') #sets up interpolation function
+            psf[i,j,:] = f_test(ran) # interpolates at the wavelengths specified in the range
+        sys.stdout.write('.'); sys.stdout.flush(); #"Progress bar", just for visuals
+    print(' ')
+    print('Interpolation done')
+    print(' ')    
+    return psf
+
 
 def jitter(steps=1000, dt=10, time_delay=5, gain=0.2, amplitude_act=0.1, amplitude_sens=0.1):
     """Jitter generator
@@ -262,7 +366,7 @@ def jitter(steps=1000, dt=10, time_delay=5, gain=0.2, amplitude_act=0.1, amplitu
         k=k+dt #K is updated, and the whole thing runs again, this time for index +dt. 
     return x, y
 
-def slit(slit_size=[10,100], pos=[499, 499], img_size=[1000,1000]):
+def slit(slit_size=[10,100], pos=[499, 499], image_size=[1000,1000]):
     """ Creates a slit "mask" to overlay images.
     
     Parameters
@@ -287,7 +391,7 @@ def slit(slit_size=[10,100], pos=[499, 499], img_size=[1000,1000]):
     y_low = pos[1] - height
     y_up = pos[1] + height
     
-    mask = np.zeros(img_size) #Creates empty mask
+    mask = np.zeros(image_size) #Creates empty mask
     
     mask[y_low:y_up, x_low:x_up] = mask[y_low:y_up, x_low:x_up]+1 #Fills in the slit, so that only the slit has any throughput
     
@@ -392,3 +496,193 @@ def folding(psf_image, jitter_image):
     from scipy import signal
     folded=signal.convolve2d(psf_image, jitter_image, mode='same', boundary='fill') #convolves the psf slice and the jitter image
     return folded
+
+
+def disperser2_copy(wl_endpoints, jit_img, psf_img, pos, image_size, dispersion, eff, magni, mask_img, steps=1, plot='n'):
+    import sys
+    x_pos=pos[0] 
+    y_pos=pos[1]
+    im_disp = np.zeros((image_size[0],image_size[1]))
+    im_disp_lambda = np.zeros((image_size[0],image_size[1]))
+    x_dispersion = dispersion[0]
+    y_dispersion = dispersion[1]
+    numColors = int( (wl_endpoints[1]-wl_endpoints[0]))
+    print(numColors)
+    print(' ')
+    if plot=='y':
+        import matplotlib.pyplot as plt
+        plt.figure()
+        from matplotlib.colors import LinearSegmentedColormap
+        N = 256 #8-bit value, to fix colours
+        colspec = plt.cm.get_cmap('Spectral') #Fetches colourmap to use later
+        vals = np.ones((N,4)) #Setup for colormap
+
+    for i in range(0, numColors, steps):
+    # for i in range(0,101, steps):
+        im = np.zeros((image_size[0],image_size[1]))
+        fold = folding(psf_img[:,:,i], jit_img)
+        fold=fold/np.sum(fold)
+        
+        foo = int(psf_img.shape[0]/2)
+        # im[0+x_pos-foo:len(jitter)+x_pos-foo, 0+y_pos-foo:len(jitter)+y_pos-foo] = im[0+x_pos-foo:len(jitter)+x_pos-foo, 0+y_pos-foo:len(jitter)+y_pos-foo] + fold*magni
+        im[0+y_pos-foo:len(fold)+y_pos-foo, 0+x_pos-foo:len(fold)+x_pos-foo] = fold #im[0+y_pos-foo:len(fold)+y_pos-foo, 0+x_pos-foo:len(fold)+x_pos-foo] + fold#*magni
+        immask = im*mask_img
+        
+        roll_x = np.roll(immask, int(np.modf(  x_dispersion[i])[1]), axis=1)
+        roll_y = np.roll(roll_x,  int(np.modf(y_dispersion[i])[1]), axis=0)
+
+        dx = abs(np.modf(x_dispersion[i])[0])
+        dy = abs(np.modf(y_dispersion[i])[0])
+        
+        foob = roll_y*(eff[i]*(1-dx)*(1-dy))
+        im_disp = im_disp + foob  # Add the rolled image to the final, and multiply by the "effectivity"
+        
+        
+        roll_dx = np.roll(roll_y, 1, axis=1) # Roll the residual to the next subpixel
+        eff_dx = eff[i] * dx * (1-dy) # effectivity of the x-residual
+        
+        roll_dy = np.roll(roll_y, 1, axis=0) # Roll the residual to the next subpixel, y-wise
+        eff_dy = eff[i] * dy * (1-dx) # y-residual eff.
+        
+        roll_dxy = np.roll(roll_dx, 1, axis=0) # roll the image one step in both x- and y-wise.
+        eff_dxy = eff[i]* dx * dy   #and eff.
+        
+        baar = roll_dx*eff_dx + roll_dy*eff_dy + roll_dxy*eff_dxy
+        
+        im_disp = im_disp + baar #add all residuals and multiply by their respective effectivities.
+        
+        im_disp_lambda = im_disp_lambda+((foob+baar)*(i+wl_endpoints[0])) #fill in im_disp, and multiply by wavelength i
+        
+        sys.stdout.write('/'); sys.stdout.flush(); #"Progress bar", just for visuals    
+        
+        ##### Plotting #####
+        if plot == 'y':
+            vals[:, 0] = np.linspace(0, colspec(1-i/750)[0], N) #Making new colourmap values
+            vals[:, 1] = np.linspace(0, colspec(1-i/750)[1], N) #the /750 is to normalize the colormap, so values fall between 0 and 1
+            vals[:, 2] = np.linspace(0, colspec(1-i/750)[2], N)
+            vals[:, 3] = np.linspace(0, 1, N) #alpha, for making the cmap transparent
+            newcmp = LinearSegmentedColormap.from_list(name='Spectral', colors=vals) #Creates new cmp, based on vals    
+            plt.imshow(roll_y, cmap=newcmp) # Show array   
+    
+    if plot=='y':
+        plt.title('Color dispersion of sample spectrum', size=18)
+        plt.xlabel('Sub-pixel', size=13)
+        plt.ylabel('Sub-pixel', size=13)
+    return im_disp, im_disp_lambda
+
+
+def disperser2(jit_img, psf_img, pos, image_size, dispersion, eff, magni, mask_img, steps=1, plot='n'):
+    '''
+    Parameters
+    ----------
+    jitter : array of float64
+        Jitter "image". 
+    psf : _hl.dataset.Dataset
+        Point Spread Function image. Must be a 3D array with depth equal to the number of colors
+    pos : list
+        Position of the star. Two values in a list.
+    image_size : tuble or list
+        Two integers that determine the size of the image. Must have the same dimensions as the mask and jitter
+    dispersion : tuble
+        Requires two entries, one for dispersion in the x- and one for the y-direction. Must have same length as number of colors
+    eff : array of float64
+        Spectral effeciency/throughput. Must be same lenght as number of colors
+    magni : float
+        Magnitude of the star.
+    mask : array of float64
+        Slit mask. Must have same dimensions as image.
+    steps : int, optional
+        Size of color "steps" to include in the disperser. The default is 1 - so all colors are included.
+    plot : string, optional
+        Toggles plotting of the color-dispersion, mainly for visuals. The default is 'n'.
+
+    Returns
+    -------
+    im_disp : array of float64
+        Dispersed image, 2D array.
+
+    '''
+    import sys
+    x_pos=pos[0]
+    y_pos=pos[1]
+    im_disp = np.zeros((image_size[0],image_size[1]))
+    x_dispersion = dispersion[0]
+    y_dispersion = dispersion[1]
+    
+    if plot=='y':
+        import matplotlib.pyplot as plt
+        plt.figure()
+        from matplotlib.colors import LinearSegmentedColormap
+        N = 256 #8-bit value, to fix colours
+        colspec = plt.cm.get_cmap('Spectral') #Fetches colourmap to use later
+        vals = np.ones((N,4)) #Setup for colormap
+
+    for i in range(0,750, steps):
+    # for i in range(0,101, steps):
+        im = np.zeros((image_size[0],image_size[1]))
+        fold = folding(psf_img[:,:,i], jit_img)
+        fold=fold/np.sum(fold)
+        
+        foo = int(psf_img.shape[0]/2)
+        # im[0+x_pos-foo:len(jitter)+x_pos-foo, 0+y_pos-foo:len(jitter)+y_pos-foo] = im[0+x_pos-foo:len(jitter)+x_pos-foo, 0+y_pos-foo:len(jitter)+y_pos-foo] + fold*magni
+        im[0+y_pos-foo:len(fold)+y_pos-foo, 0+x_pos-foo:len(fold)+x_pos-foo] = fold #im[0+y_pos-foo:len(fold)+y_pos-foo, 0+x_pos-foo:len(fold)+x_pos-foo] + fold#*magni
+        immask = im*mask_img
+        
+        roll_x = np.roll(immask, int(np.modf(  x_dispersion[i])[1]), axis=1)
+        roll_y = np.roll(roll_x,  int(np.modf(y_dispersion[i])[1]), axis=0)
+
+        dx = abs(np.modf(x_dispersion[i])[0])
+        dy = abs(np.modf(y_dispersion[i])[0])
+        
+        im_disp = im_disp + roll_y*(eff[i]*(1-dx)*(1-dy))  # Add the rolled image to the final, and multiply by the "effectivity"
+
+        roll_dx = np.roll(roll_y, 1, axis=1) # Roll the residual to the next subpixel
+        eff_dx = eff[i] * dx * (1-dy) # effectivity of the x-residual
+        
+        roll_dy = np.roll(roll_y, 1, axis=0) # Roll the residual to the next subpixel, y-wise
+        eff_dy = eff[i] * dy * (1-dx) # y-residual eff.
+        
+        roll_dxy = np.roll(roll_dx, 1, axis=0) # roll the image one step in both x- and y-wise.
+        eff_dxy = eff[i]* dx * dy   #and eff.
+        
+        im_disp = im_disp + roll_dx*eff_dx + roll_dy*eff_dy + roll_dxy*eff_dxy #add all residuals and multiply by their respective effectivities.
+                
+        sys.stdout.write('/'); sys.stdout.flush(); #"Progress bar", just for visuals    
+        
+        ##### Plotting #####
+        if plot == 'y':
+            vals[:, 0] = np.linspace(0, colspec(1-i/750)[0], N) #Making new colourmap values
+            vals[:, 1] = np.linspace(0, colspec(1-i/750)[1], N) #the /750 is to normalize the colormap, so values fall between 0 and 1
+            vals[:, 2] = np.linspace(0, colspec(1-i/750)[2], N)
+            vals[:, 3] = np.linspace(0, 1, N) #alpha, for making the cmap transparent
+            newcmp = LinearSegmentedColormap.from_list(name='Spectral', colors=vals) #Creates new cmp, based on vals    
+            plt.imshow(roll_y, cmap=newcmp) # Show array   
+    
+    if plot=='y':
+        plt.title('Color dispersion of sample spectrum', size=18)
+        plt.xlabel('Sub-pixel', size=13)
+        plt.ylabel('Sub-pixel', size=13)
+    return im_disp
+
+def read_out(dispersed):
+    '''
+    Will sum up the "photons" in the y-direction of the input dispersed image.
+    
+    Parameters
+    ----------
+    dispersed : array, 2 dimensional
+        Dispersed image-array.
+
+    Returns
+    -------
+    counts : array
+        Array of counts in the y-direction.
+
+    '''
+    import numpy as np
+    counts = np.array(())
+    for i in range(dispersed.shape[0]):
+        counts = np.append(counts, np.sum(dispersed[:,i]))
+    return counts
+
+
