@@ -6,12 +6,38 @@ Created on Thu Jul 30 10:13:21 2020
 @author: lasse
 """
 import numpy as np
-import simfun
+# import simfun
+# from scipy.interpolate import interp1d
+# import sys 
 
+CCDload = np.load('CCD3D.npy')
+wls = np.linspace(350, 1100, 4)
+# CCDload = simfun.CCD_maker(CCD_size=(100,100))
+img = np.load('img.npy')
+img_wl = np.load('img_wl.npy')
+new_img = np.zeros((img.shape[0], img.shape[1]))
+# i=0; j=0
 
-# CCDload = np.load('CCD3D.npy')
+# interp = interp1d(wls, CCDload[i,j,:])
+# newCCD[i,j] = interp(img_wl[i,j])
 
+def ccd_interp(inCCD, wls, img, img_wl):
+    import sys
+    from scipy.interpolate import interp1d
+    
+    if not wls.shape[0] is inCCD.shape[2]:
+        raise TypeError("Wavelength array and input CCD depth not same size")
+    if not inCCD.shape[0:2] == img.shape[0:2] == img_wl.shape:
+        raise TypeError("CCD and image not same size")    
+    
+    for i in range(0, inCCD.shape[0]):
+        for j in range(0, inCCD.shape[1]):
+            interp = interp1d(wls, inCCD[i,j,:], kind="slinear", fill_value="extrapolate")
+            new_img[i,j] = img[i,j]*interp(img_wl[i,j])
+        sys.stdout.write('.'); sys.stdout.flush();
+    return new_img
 
+njewimg = ccd_interp(inCCD=CCDload, wls=wls, img=img, img_wl=img_wl)
 
 '''
 file_name = "tjest"

@@ -155,7 +155,7 @@ def CCD_maker(CCD_size, subpix=10, var=0.05, var2=0.05, grid_loss=0.6, smooth=5)
     #to see a visualization of this, use the variable explorer - type: %varexp --imshow grid
     noise2 = np.random.standard_normal((x_size, y_size))*var2 
     CCD2 = CCD2+noise2+1
-    
+    # CCD2 = CCD2/np.mean(CCD2)
     CCD = CCD2*grid #overlays the grid on the CCD
     CCD = CCD/np.mean(CCD)
     return CCD
@@ -498,7 +498,7 @@ def folding(psf_image, jitter_image):
     return folded
 
 
-def disperser2_copy(wl_endpoints, jit_img, psf_img, pos, image_size, dispersion, eff, magni, mask_img, steps=1, plot='n'):
+def disperser2(wl_endpoints, jit_img, psf_img, pos, image_size, dispersion, eff, magni, mask_img, steps=1, plot='n'):
     import sys
     x_pos=pos[0] 
     y_pos=pos[1]
@@ -571,7 +571,7 @@ def disperser2_copy(wl_endpoints, jit_img, psf_img, pos, image_size, dispersion,
     return im_disp, im_disp_lambda
 
 
-def disperser2(jit_img, psf_img, pos, image_size, dispersion, eff, magni, mask_img, steps=1, plot='n'):
+def disperser2_copy(jit_img, psf_img, pos, image_size, dispersion, eff, magni, mask_img, steps=1, plot='n'):
     '''
     Parameters
     ----------
@@ -663,6 +663,43 @@ def disperser2(jit_img, psf_img, pos, image_size, dispersion, eff, magni, mask_i
         plt.xlabel('Sub-pixel', size=13)
         plt.ylabel('Sub-pixel', size=13)
     return im_disp
+
+def ccd_interp(inCCD, wls, img, img_wl):
+    """
+    Interpolator used to find the subpixel sensitivity for all wavelengths (not just the ones created by ccd_maker)
+
+    Parameters
+    ----------
+    inCCD : array
+        Input CCD array, can be made using ccd_maker.
+    wls : array
+        Corresponding wavelengths. Must have the same size as the depth of inCCD
+    img : array
+        Input image, from disperser2.
+    img_wl : array
+        Input image wavelengths.
+
+    Returns
+    -------
+    new_img : array
+        Image "multiplied" by the CCD, using the interpolated sensitivities for each subpixel.
+    """
+    import sys
+    from scipy.interpolate import interp1d
+    
+    if not wls.shape[0] is inCCD.shape[2]:
+        raise TypeError("Wavelength array and input CCD depth not same size")
+    if not inCCD.shape[0:2] == img.shape[0:2] == img_wl.shape:
+        raise TypeError("CCD and image not same size")    
+    
+    new_img = np.zeros(img.shape)
+    for i in range(0, inCCD.shape[0]):
+        for j in range(0, inCCD.shape[1]):
+            interp = interp1d(wls, inCCD[i,j,:], kind="slinear", fill_value="extrapolate")
+            new_img[i,j] = img[i,j]*interp(img_wl[i,j])
+        sys.stdout.write('.'); sys.stdout.flush();
+    return new_img
+
 
 def read_out(dispersed):
     '''

@@ -17,6 +17,8 @@ import sys
 import h5py
 
 CCDload = np.load('CCD3D.npy')
+wls = np.linspace(350, 1100, 4)
+
 QE = np.loadtxt('QE.txt')
 optics = np.loadtxt('optics.txt')
 spec = np.loadtxt('spec2.txt', skiprows=3)
@@ -153,8 +155,8 @@ slitpos = [150, 499]
 billede=np.zeros((CCD_size,CCD_size))
 magni = simfun.mag(np.random.uniform(-1, 6.5)) #Random stellar brightness
 
-if os.path.exists("spectrum.fits"): #Iff old files exist, replace by the new one
-    os.remove('spectrum.fits')
+# if os.path.exists("spectrum.fits"): #Iff old files exist, replace by the new one
+#     os.remove('spectrum.fits')
 
 # hdu = fits.PrimaryHDU(im_disp)
 # hdulist = fits.HDUList([hdu])
@@ -194,17 +196,19 @@ jit = simfun.jitter_im(x= x_j, y= y_j, psf_size=(psf[:,:,0].shape[0], psf[:,:,0]
 # jit[50,50]=1
 
 # psf=np.ones((101, 101))
-test, test_wl=simfun.disperser2_copy(wl_endpoints=[350, 1100], jit_img=jit, psf_img=psf, pos=slitpos, image_size=img_size, 
+test, test_wl=simfun.disperser2(wl_endpoints=[350, 1100], jit_img=jit, psf_img=psf, pos=slitpos, image_size=img_size, 
                        dispersion=disper, eff=eff, magni=magni, mask_img=mask, steps=1, plot='n')
 
 ro = simfun.read_out(test)
-lam = (test_wl+725*10**(-30))/(test+10**(-30))
+lam = (test_wl+725*10**(-80))/(test+10**(-80))
 # lam = (test_wl)/(test+10**(-30))
 plt.figure(); plt.imshow(lam); plt.colorbar()
-plt.figure(); plt.plot(ro/ro.max())
+# np.save("img_wl.npy", lam)
+# np.save("img.npy", test)
+# plt.figure(); plt.plot(ro/ro.max())
 # plt.plot(np.arange(92, 750+92), eff/eff.max())
 
-
+final = simfun.ccd_interp(CCDload, wls, test, test_wl)
 
 
 ''' for i
