@@ -44,8 +44,8 @@ TEC = QE_int[:,1]*optics_int[:,1]
 # psf = psf_file['psf']
 # plt.imshow(psf[:,:,0])
 ################################
-file_name = "test_psf2_raw"
-file_name = "psf_highpres"
+# file_name = "test_psf2_raw"
+# file_name = "psf_highpres"
 file_name = "psf_ny"
 # psf_file = h5py.File(file_name+'.hdf5', 'a') #load in psf_file
 # psf = psf_file['psf'] #fetches the psf
