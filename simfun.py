@@ -364,6 +364,8 @@ def jitter(steps=1000, dt=10, time_delay=5, gain=0.2, amplitude_act=0.1, amplitu
         x[k+i+1] = x[k+i] + x_correction #correction term is added to the last entry in the small batch of "steps"
         y[k+i+1] = y[k+i] + y_correction
         k=k+dt #K is updated, and the whole thing runs again, this time for index +dt. 
+    x = x[0:steps]
+    y = y[0:steps] #Cut off the last step, as it is just filler
     return x, y
 
 def slit(slit_size=[10,100], pos=[499, 499], image_size=[1000,1000]):
@@ -410,6 +412,7 @@ def mag(mag_star, mag_ref=0):
 def disp_func(wl_start, wl_stop, delta_lambda):
     return 1.15*np.arange(wl_start, wl_stop, delta_lambda)-800
 
+"""
 def disperser(image, psf, magni, mask, eff, dispers=(350, 1100, 1), CCDsize=(1000,1000), cols=(0, 750), stepsize=5, exposure=100, plot='n', save='n'):
     import sys
     if plot == 'y':
@@ -467,7 +470,7 @@ def disperser(image, psf, magni, mask, eff, dispers=(350, 1100, 1), CCDsize=(100
     if save == 'y':
         plt.savefig('disp.png', dpi=400)    
     return im_disp
-
+"""
 
 def jitter_im(x, y, psf_size):
     ''' Creates a jitter "image" - a matrix of the same dimensions (x & y) as the psf, used in the folding function
@@ -497,7 +500,7 @@ def folding(psf_image, jitter_image):
     folded=signal.convolve2d(psf_image, jitter_image, mode='same', boundary='fill') #convolves the psf slice and the jitter image
     return folded
 
-
+#The correct disperser::::
 def disperser2(wl_endpoints, jit_img, psf_img, pos, image_size, dispersion, eff, magni, mask_img, steps=1, plot='n'):
     import sys
     x_pos=pos[0] 
@@ -521,20 +524,20 @@ def disperser2(wl_endpoints, jit_img, psf_img, pos, image_size, dispersion, eff,
     # for i in range(0,101, steps):
         im = np.zeros((image_size[0],image_size[1]))
         fold = folding(psf_img[:,:,i], jit_img)
-        fold=fold/np.sum(fold)
+        # fold=fold/np.sum(fold)
         
         foo = int(psf_img.shape[0]/2)
         # im[0+x_pos-foo:len(jitter)+x_pos-foo, 0+y_pos-foo:len(jitter)+y_pos-foo] = im[0+x_pos-foo:len(jitter)+x_pos-foo, 0+y_pos-foo:len(jitter)+y_pos-foo] + fold*magni
         im[0+y_pos-foo:len(fold)+y_pos-foo, 0+x_pos-foo:len(fold)+x_pos-foo] = fold #im[0+y_pos-foo:len(fold)+y_pos-foo, 0+x_pos-foo:len(fold)+x_pos-foo] + fold#*magni
         immask = im*mask_img
         
-        roll_x = np.roll(immask, int(np.modf(  x_dispersion[i])[1]), axis=1)
-        roll_y = np.roll(roll_x,  int(np.modf(y_dispersion[i])[1]), axis=0)
+        roll_x = np.roll(immask,  int(np.modf(x_dispersion[i])[1]), axis=1) #move/disperse the light 
+        roll_y = np.roll(roll_x,  int(np.modf(y_dispersion[i])[1]), axis=0) #also in the y-direction
 
-        dx = abs(np.modf(x_dispersion[i])[0])
+        dx = abs(np.modf(x_dispersion[i])[0]) #residual amount
         dy = abs(np.modf(y_dispersion[i])[0])
         
-        foob = roll_y*(eff[i]*(1-dx)*(1-dy))
+        foob = roll_y*(eff[i]*(1-dx)*(1-dy)) #multiply by efficiency 
         im_disp = im_disp + foob  # Add the rolled image to the final, and multiply by the "effectivity"
         
         
@@ -692,7 +695,7 @@ def ccd_interp(inCCD, wls, img, img_wl):
     if not inCCD.shape[0:2] == img.shape[0:2] == img_wl.shape:
         raise TypeError("CCD and image not same size")    
     
-    new_img = np.zeros(img.shape)
+    new_img = np.zeros((img.shape[0], img.shape[1]))
     for i in range(0, inCCD.shape[0]):
         for j in range(0, inCCD.shape[1]):
             interp = interp1d(wls, inCCD[i,j,:], kind="slinear", fill_value="extrapolate")
@@ -722,4 +725,38 @@ def read_out(dispersed):
         counts = np.append(counts, np.sum(dispersed[:,i]))
     return counts
 
+def bin_sum(inp, bin_size): 
+    """
+    Returns a binned version of inp, with each bin being bin_size in each dimension. The bins are summed up.
 
+    Parameters
+    ----------
+    inp : array_like
+        Input array. Must be 2D.
+    bin_size : int
+        Bin size. Division of input shape and bin_size should be a whole number, i.e. no 8.333 etc.
+
+    Returns
+    -------
+    binned : array
+        Array of inp.shape/bin_size in shape, with the bins summed up.
+
+    """
+    # Check if bin_size is whole divisor of inp.shape
+    if not np.modf(inp.shape[0]/bin_size)[0] == 0 == np.modf(inp.shape[1]/bin_size)[0]:
+        raise TypeError("Input shape and bin size divided must be a whole number. (mod = 0)")
+    
+    temp = np.zeros((inp.shape[0], int(inp.shape[1]/bin_size) )) #Create empty matrix for first step
+    summed = np.zeros((int(inp.shape[0]/bin_size), int(inp.shape[1]/bin_size) )) #Empty matrix for second step
+
+    for x in range(0, inp.shape[0], bin_size): #Range for 1st
+        j = range(0+x, bin_size+x) #Bin range. ex. 20-30 if bin_size is 10
+        for i in range(0, inp.shape[0]): # over all columns 
+            temp[i, int(j[0]/bin_size)]= sum(inp[i,j]) #sum, and add to temp
+    
+    for x in range(0, inp.shape[1], bin_size): #2nd step, repeat 1st step, but for rows
+        i = range(0+x, bin_size+x) #row bin-range. 
+        for j in range(0, summed.shape[0]): 
+            summed[int(i[0]/bin_size), j]= sum(temp[i,j]) #sum and add to result-matrix
+            
+    return summed

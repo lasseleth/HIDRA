@@ -15,11 +15,6 @@ wls = np.linspace(350, 1100, 4)
 # CCDload = simfun.CCD_maker(CCD_size=(100,100))
 img = np.load('img.npy')
 img_wl = np.load('img_wl.npy')
-new_img = np.zeros((img.shape[0], img.shape[1]))
-# i=0; j=0
-
-# interp = interp1d(wls, CCDload[i,j,:])
-# newCCD[i,j] = interp(img_wl[i,j])
 
 def ccd_interp(inCCD, wls, img, img_wl):
     import sys
@@ -29,7 +24,8 @@ def ccd_interp(inCCD, wls, img, img_wl):
         raise TypeError("Wavelength array and input CCD depth not same size")
     if not inCCD.shape[0:2] == img.shape[0:2] == img_wl.shape:
         raise TypeError("CCD and image not same size")    
-    
+        
+    new_img = np.zeros((img.shape[0], img.shape[1]))
     for i in range(0, inCCD.shape[0]):
         for j in range(0, inCCD.shape[1]):
             interp = interp1d(wls, inCCD[i,j,:], kind="slinear", fill_value="extrapolate")
@@ -38,7 +34,8 @@ def ccd_interp(inCCD, wls, img, img_wl):
     return new_img
 
 njewimg = ccd_interp(inCCD=CCDload, wls=wls, img=img, img_wl=img_wl)
-
+import matplotlib.pyplot as plt
+plt.imshow(njewimg)
 '''
 file_name = "tjest"
 wl_endpoints=(350, 1100)
@@ -119,3 +116,77 @@ np.save("test_psf_raw.npy", z)
 '''
 
 
+###Test of random stars in image###
+'''
+inp = input('Do you wish to generate random stars? (y/n) ')
+if inp == 'y':
+    billede=np.zeros((CCD_size,CCD_size))
+    #### Exposure time #####
+    
+    print(' ')
+    print('Number of stars complete:')
+    print('         10        20        30        40        50        60        70')
+    for i in range(30):
+        x_pos = np.random.randint(100, 900) 
+        y_pos = np.random.randint(100, 900) #generates star position 
+        # print(x_pos, ', ', y_pos)
+        x_0 = x_pos
+        y_0 = y_pos
+        
+        # plt.plot(x_pos, y_pos, 'r.')
+        magni = simfun.mag(np.random.uniform(-1, 6.5)) #Random stellar brightness
+        for i in range(exposure):
+            billede[x_pos-ux:x_pos+ox, y_pos-uy:y_pos+oy] = billede[x_pos-ux:x_pos+ox, y_pos-uy:y_pos+oy]+psf[:,:,0]*magni #adds psf values to selected area of image array
+            x_pos = x_0+x_j[i]
+            y_pos = y_0+y_j[i] #updates coordinates based on jitter
+            x_pos = int(np.around(x_pos))
+            y_pos = int(np.around(y_pos)) # rounds off the coordinates, as matrix can only take int as index
+        sys.stdout.write('*'); sys.stdout.flush(); #"Progress bar", just for visuals 
+    # image_file = h5py.File('/home/lasse/Documents/uni/Thesis/Sim/image_array.hdf5', "a")
+    # image_file.create_dataset('image', shape=(billede.shape[0], billede.shape[1]), dtype='f') #creates datasets in the file.
+    # image_file['image'] = billede
+        
+        if os.path.exists('/home/lasse/Documents/uni/Thesis/Sim/image_file.hdf5') == True: #If file already exists, it will be deleted
+            os.remove('/home/lasse/Documents/uni/Thesis/Sim/image_file.hdf5')
+        file = h5py.File("image_file.hdf5", "a") #creates the file in which the arrays are stored
+        file.create_dataset('image', (CCD_size, CCD_size), dtype='f') #dataset for a CCD image, with stars etc.
+        image = file['image']   
+        image[:,:] = billede
+else: image_file = h5py.File('/home/lasse/Documents/uni/Thesis/Sim/image_file.hdf5', 'a'); billede=image_file['image']
+# del ux, ox, uy, oy, x_j, y_j, x_0, y_0,  x_pos, y_pos
+
+#### Slit function
+
+slitwidth= 10
+slitheight=150
+slitpos = [150, 499]
+# slitpos=[499, 499]
+mask = simfun.slit(slit_size = [slitwidth, slitheight], pos=slitpos)
+billede_masked = billede[:,:]*mask
+
+if os.path.exists("test.fits"):
+    os.remove('test.fits')
+
+import astropy.io.fits as fits
+hdu = fits.PrimaryHDU(billede_masked)
+hdulist = fits.HDUList([hdu])
+hdulist.writeto('test.fits')
+hdr = hdulist[0].header
+# hdr.set('CCD-size', CCD_size)
+hdr['CCD-size'] = (str(CCD_size)+'x'+str(CCD_size), 'Dimensions of the CCD detector')
+hdr['exptime'] = (exposure, 'Exposure duration (units)')
+hdr['slit-w'] = (slitwidth, 'Width of slit')
+hdr['slit-h'] = (slitheight, 'Height of slit')
+hdr['Slit-x'] = (slitpos[0], 'x-position of slit')
+hdr['Slit-y'] = (slitpos[1], 'y-position of slit')
+
+
+import datetime
+day = datetime.date.today()
+time = datetime.datetime.now()
+hdr.set('date-obs', day.strftime("%m/%d/%y          "))
+hdr.set('time-obs', time.strftime("%H:%M:%          "))
+
+hdulist.close()
+### Test of random star generation ends here ####
+'''
