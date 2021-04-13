@@ -10,7 +10,7 @@ The scripts were created as a part of my Master's thesis, which was titled "Simu
 
 Author: Lasse L. S. Berthelsen
 
-- `Thesis <https://hidra.readthedocs.io/en/latest/>`_
+- `More documentation <https://hidra.readthedocs.io/en/latest/>`_
 
 Installation
 ~~~~~~~~~~~~
@@ -33,7 +33,4 @@ To make a simple simulation, my code might look like:
 
    # Imports
    import HIDRA
-
-.. figure:: awesimsoss/img/plot_frames.png
-   :alt: The output trace
 
