@@ -33,4 +33,10 @@ To make a simple simulation, my code might look like:
 
    # Imports
    import HIDRA
-
+   import input_file as inp
+   
+   #Setup the code using user-defined inputs. These can be adjusted in the input file
+   spec_eff, spec_eff2, jitter, x_j, y_j, psf, img_size, sub_pixel, pl_arc_pix, disper, mask, slitpos, background = HIDRA.setup(inp)
+   
+   image, image_wl=HIDRA.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_img=psf, pos=slitpos, image_size=img_size, 
+                                        dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
