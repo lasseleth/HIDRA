@@ -9,7 +9,7 @@ Made by Lasse L. S. Berthelsen, as a part of the thesis work.
 import numpy as np
 import matplotlib.pyplot as plt
 import input_file as inp
-import HIDRA_cp
+import HIDRA
 import scipy.signal
 
 def rms(x):
@@ -36,10 +36,7 @@ def int_r(r1, r2, rang):
     # np.save("runs/jitter/j"+str(i), j)
 
 
-spec_eff, spec_eff2, jitter, x_j, y_j, img_size, sub_pixel, pl_arc_mm, disper, mask, slitpos, background = HIDRA_cp.setup(inp)
-
-image1, image_wl1=HIDRA_cp.disperser(wl_endpoints=inp.wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
-                                        dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
+spec_eff, spec_eff2, jitter, x_j, y_j, img_size, sub_pixel, pl_arc_mm, disper, mask, slitpos, background = HIDRA.setup(inp)
 
 in_spec = np.loadtxt(inp.in_spec)
 in_spec2 = np.loadtxt(inp.in_spec2)
@@ -49,23 +46,21 @@ slit = inp.slit
 CCD = np.load(inp.in_CCD)
 #### SETUP PHASE COMPLETE ####
 
-
-
 #### IMAGE FORMATION BEGINS ####
-image1, image_wl1=HIDRA_cp.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
+image1, image_wl1=HIDRA.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
                                         dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
 
-image2, image_wl2=HIDRA_cp.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
+image2, image_wl2=HIDRA.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
                                         dispersion=disper, eff=spec_eff2, mask_img=mask, steps=1, plot='n')
 
 ro = image1
 ri = image2
-no = HIDRA_cp.noise(size=ro.shape, image=ro)
-ni = HIDRA_cp.noise(size=ri.shape, image=ri)
+no = HIDRA.noise(size=ro.shape, image=ro)
+ni = HIDRA.noise(size=ri.shape, image=ri)
 ri = ri+ni
 ro = ro+no
 del no, ni, image1, image2
-ro, ri, wave, delta = HIDRA_cp.the_thing(image=ro, image2=ri, sub_pixel=sub_pixel, wl_ran=inp.wl_ran, disper=disper, 
+ro, ri, wave, delta = HIDRA.the_thing(image=ro, image2=ri, sub_pixel=sub_pixel, wl_ran=inp.wl_ran, disper=disper, 
                                          slitpos=slitpos, img_size=img_size, move="y", noiseinp="n")
 
 
