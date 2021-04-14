@@ -40,3 +40,5 @@ To make a simple simulation, my code might look like:
    
    image, image_wl=HIDRA.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_img=psf, pos=slitpos, image_size=img_size, 
                                         dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
+.. figure:: HIDRA/single_spec.png
+   :alt: The output trace
