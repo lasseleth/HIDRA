@@ -40,5 +40,43 @@ To make a simple simulation, my code might look like:
    
    image, image_wl=HIDRA.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_img=psf, pos=slitpos, image_size=img_size, 
                                         dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
-.. figure:: HIDRA/single_spec.png
-   :alt: The output trace
+.. figure:: single_spec.png
+The output of a single simulation run. 
+
+Simulating a transmission spectrum as observed by the setup
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+   import HIDRA
+   import input_file as inp
+   
+   spec_eff, spec_eff2, jitter, x_j, y_j, img_size, sub_pixel, pl_arc_mm, disper, mask, slitpos, background = HIDRA.setup(inp)
+
+   in_spec = np.loadtxt(inp.in_spec)
+   in_spec2 = np.loadtxt(inp.in_spec2)
+   wl_ran = inp.wl_ran
+   exp = inp.exp
+   slit = inp.slit
+   CCD = np.load(inp.in_CCD)
+   #### SETUP PHASE COMPLETE ####
+
+   #### IMAGE FORMATION BEGINS ####
+   image1, image_wl1=HIDRA_cp.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
+                                           dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
+
+   image2, image_wl2=HIDRA_cp.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
+                                           dispersion=disper, eff=spec_eff2, mask_img=mask, steps=1, plot='n')
+
+   ro = image1
+   ri = image2
+   no = HIDRA_cp.noise(size=ro.shape, image=ro)
+   ni = HIDRA_cp.noise(size=ri.shape, image=ri)
+   ri = ri+ni
+   ro = ro+no
+   del no, ni, image1, image2
+   ro, ri, wave, delta = HIDRA_cp.the_thing(image=ro, image2=ri, sub_pixel=sub_pixel, wl_ran=inp.wl_ran, disper=disper, 
+                                            slitpos=slitpos, img_size=img_size, move="y", noiseinp="n")
+   plt.plot(wave, (r1-r2)/r1)
+   
+.. figure:: sample_transmission.png
+The resultant transmission spectrum. Evidently, this setup seems unlikely to detect the atmosphere of this planet. To truly tell though, you should repeat the simulations, using a different jitter each time, and use all observations in the data-processing.
