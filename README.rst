@@ -83,3 +83,16 @@ In order to simulate a single transmission spectrum of an exoplanet transiting a
    
 .. figure:: sample_transmission.png
 The resultant transmission spectrum. Evidently, this setup seems unlikely to detect the atmosphere of this planet. To truly tell though, you should repeat the simulations, using a different jitter each time, and use all observations in the data-processing.
+
+
+~~~~
+FAQ
+~~~~
+What dependencies does HIDRA have?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In order to use HIDRA, you need to have installed the following packages: Astropy, Numpy and Scipy. Also, I would recommend having Matplotlib, for plotting, etc.
+
+Can I use/change and otherwise edit this code?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Yes, please do! Remember that the code is provided "as is", and there are no garanties to the functionality. If you make a neat new feature, or something you feel should be added, please contact me, and I'll add it to the master branch.
+
