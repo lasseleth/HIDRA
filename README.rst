@@ -16,12 +16,20 @@ Author: Lasse L. S. Berthelsen
 Installation
 ~~~~~~~~~~~~
 
-The best way to install ``HIDRA`` is
+The best way to install ``HIDRA`` is to clone the repository to your local folders,
 
 .. code-block:: bash
 
    git clone https://github.com/lasseleth/HIDRA.git
-   cd Sim
+
+And then importing the package in your script:
+
+.. code-block:: python
+   
+   import HIDRA 
+
+There are several functions to use in HIDRA.py, and a demo-script is included in the repository, called sample_simulations.py
+The inputs of the simulation can be changed in the input_file.py. Values of several of the inputs, such as CCD subpixel variation, or spacecraft jitter can be generated using the functions included in HIDRA.
 
 Simulating a stellar observation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
