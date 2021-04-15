@@ -46,8 +46,10 @@ The output of a single simulation run.
 
 Simulating a transmission spectrum as observed by the setup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In order to simulate a single transmission spectrum of an exoplanet transiting a star, a sample code might look like the following:
 
 .. code-block:: python
+
    import HIDRA
    import input_file as inp
    
@@ -60,14 +62,14 @@ Simulating a transmission spectrum as observed by the setup
    slit = inp.slit
    CCD = np.load(inp.in_CCD)
    #### SETUP PHASE COMPLETE ####
-
+   
    #### IMAGE FORMATION BEGINS ####
    image1, image_wl1=HIDRA_cp.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
                                            dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
-
+   
    image2, image_wl2=HIDRA_cp.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
                                            dispersion=disper, eff=spec_eff2, mask_img=mask, steps=1, plot='n')
-
+   
    ro = image1
    ri = image2
    no = HIDRA_cp.noise(size=ro.shape, image=ro)
