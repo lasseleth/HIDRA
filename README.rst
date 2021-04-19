@@ -13,6 +13,8 @@ Author: Lasse L. S. Berthelsen
 - `More documentation <https://hidra.readthedocs.io/en/latest/>`_
 - `Thesis <https://github.com/lasseleth/HIDRA/blob/master/thesis/Thesis_Lasse.pdf>`_
 
+The sample spectra included, were generated using `SPECTRUM <http://www.appstate.edu/~grayro/spectrum/spectrum.html>`_.
+
 Installation
 ~~~~~~~~~~~~
 
@@ -103,4 +105,8 @@ In order to use HIDRA, you need to have installed the following packages: Astrop
 Can I use/change and otherwise edit this code?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Yes, please do! Remember that the code is provided "as is", and there are no garanties to the functionality. If you make a neat new feature, or something you feel should be added, please contact me, and I'll add it to the master branch.
+
+License
+~~~~~~~
+See the `LICENSE <https://github.com/lasseleth/HIDRA/blob/master/LICENSE.md>`_ file for license rights and limitations (MIT).
 
