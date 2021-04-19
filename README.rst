@@ -13,7 +13,7 @@ Author: Lasse L. S. Berthelsen
 - `More documentation <https://hidra.readthedocs.io/en/latest/>`_
 - `Thesis <https://github.com/lasseleth/HIDRA/blob/master/thesis/Thesis_Lasse.pdf>`_
 
-The sample spectra included, were generated using `SPECTRUM <http://www.appstate.edu/~grayro/spectrum/spectrum.html>`_.
+The spectra included in the *sample_values* folder were generated using `SPECTRUM <http://www.appstate.edu/~grayro/spectrum/spectrum.html>`_.
 
 Installation
 ~~~~~~~~~~~~
