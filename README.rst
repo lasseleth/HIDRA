@@ -104,8 +104,9 @@ In order to use HIDRA, you need to have installed the following packages: Astrop
 
 Can I use/change and otherwise edit this code?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Yes, please do! Remember that the code is provided "as is", and there are no garanties to the functionality. If you make a neat new feature, or something you feel should be added, please contact me, and I'll add it to the master branch.
+Yes, please do! Remember that the code is provided "*as is*", and there are no garanties to the functionality. If you make a neat new feature, or something you feel should be added, please contact me, and I'll add it to the master branch.
 
+~~~~~~~
 License
 ~~~~~~~
 See the `LICENSE <https://github.com/lasseleth/HIDRA/blob/master/LICENSE>`_ file for license rights and limitations (MIT).
