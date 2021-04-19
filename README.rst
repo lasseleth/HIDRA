@@ -108,5 +108,5 @@ Yes, please do! Remember that the code is provided "as is", and there are no gar
 
 License
 ~~~~~~~
-See the `LICENSE <https://github.com/lasseleth/HIDRA/blob/master/LICENSE.md>`_ file for license rights and limitations (MIT).
+See the `LICENSE <https://github.com/lasseleth/HIDRA/blob/master/LICENSE>`_ file for license rights and limitations (MIT).
 
