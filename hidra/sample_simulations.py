@@ -28,6 +28,24 @@ def int_r(r1, r2, rang):
     return r1_int, r2_int
 #### SETUP PHASE ####
 
+
+# def sinusoidal(size, frequency, amplitude, phase):
+#     x = np.zeros((size))
+#     y = np.zeros((size))
+#     # omega0 = 1 
+#     # deltax = np.random.random()*np.pi #Random phases
+#     # deltay = np.random.random()*np.pi
+#     # ax = 1
+#     # ay = 1
+#     for i in range(0,size):
+#         x[i] = amplitude * np.cos(frequency * i - phase) #next x-value, using the new phase
+#         x[i] = noise_test(x[i])
+#         y[i] = amplitude * np.sin(frequency * i - phase) #and new y-value of coord.
+#         y[i] = noise_test(y[i])
+
+
+
+
 # del x_j, y_j
 # New jitter files:
 # for i in range(1, 21):
@@ -37,6 +55,12 @@ def int_r(r1, r2, rang):
 
 
 spec_eff, spec_eff2, jitter, x_j, y_j, img_size, sub_pixel, pl_arc_mm, disper, mask, slitpos, background = HIDRA.setup(inp)
+
+x, y = HIDRA.sinusoidal(1000, frequency=100, amplitude=10, phase=1)
+test = HIDRA.jitter_im(x,y, (101,101))
+plt.imshow(test)
+# plt.plot(x,y)
+# jitter
 
 in_spec = np.loadtxt(inp.in_spec)
 in_spec2 = np.loadtxt(inp.in_spec2)
@@ -70,6 +94,8 @@ with open('ro.txt','w') as f:
     np.savetxt(f, [ro], delimiter=',')
     
 del ri, ro, wave, delta 
+
+
 # for i in range(10):
 #     x_j, y_j = simfun.func_jitter(entries=(exp*inp.step), gain=0.15, dt=5)
 #     jitter = np.vstack([x_j, y_j])

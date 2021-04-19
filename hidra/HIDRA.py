@@ -799,7 +799,20 @@ def noise1d(x, RON=5):
             noise[i,j] = (np.sqrt(x[i,j])+RON)*np.random.normal(0,1)
     return noise
 
+def noise_test(x):
+    noise = np.sqrt(abs(x))*np.random.normal(0,1)
+    return noise
 
+def sinusoidal(size, frequency, amplitude, phase):
+    x = np.zeros((size))
+    y = np.zeros((size))
+    for i in range(0,size):
+        x[i] = amplitude * np.cos(frequency * i - phase) #next x-value, using the new phase
+        x[i] = noise_test(x[i])
+        y[i] = amplitude * np.sin(frequency * i - phase) #and new y-value of coord.
+        y[i] = noise_test(y[i])
+    return x, y
+        
 def the_thing(image, image2, sub_pixel, wl_ran, disper, slitpos, img_size, move="y", noiseinp="n"):
     """
     Function used to process two stellar spectrum, so it is possible to analyze the transmission spectrum of an exoplanetary
@@ -867,6 +880,34 @@ def the_thing(image, image2, sub_pixel, wl_ran, disper, slitpos, img_size, move=
     # print("Done! \nFirst spectrum complete, continuing to second:\n")
     r2 = convolve(r2,kernel = Gaussian1DKernel(4246.6)) #https://docs.astropy.org/en/stable/convolution/
     return r1, r2, wave, delta
+
+def photon_convert(wavelength_array, flux_array, stellar_radius, distance):
+    """
+    Function to convert stellar flux from SPECTRUM into photon counts per second per cm^2. 
+
+    Parameters
+    ----------
+    wavelength_array : array
+        Array with each entry being the wavelength, in cm
+    flux_array : array
+        SPECTRUM fluxes. Has to be in erg/s/cm^2/Å
+    stellar_radius : float
+        Stellar radius of the target star. 
+    distance : float
+        Distance to target star, in the same unit as stellar_radius
+
+    Returns
+    -------
+    spec : array
+        Photon counts per second per cm^2 in the specified wavelength. [No. of photons/s/cm^2]. 
+    """
+    import astropy.constants as co
+    
+    flux = np.zeros((flux_array.shape[0]))
+    for i in range(flux_array.shape[0]):
+        flux[i] = flux_array[i]*(stellar_radius/distance)**2
+    spec = wavelength_array*flux/(co.h.cgs.value * co.c.cgs.value)*4.27
+    return spec
 
 
 #Trash or old functions be here:
