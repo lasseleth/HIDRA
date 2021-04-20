@@ -813,11 +813,13 @@ def sinusoidal(size, frequency, amplitude, phase):
         y[i] = noise_test(y[i])
     return x, y
         
-def the_thing(image, image2, sub_pixel, wl_ran, disper, slitpos, img_size, move="y", noiseinp="n"):
+def transmission_spec_func(image, image2, sub_pixel, wl_ran, disper, slitpos, img_size, move="y", noiseinp="n"):
     """
     Function used to process two stellar spectrum, so it is possible to analyze the transmission spectrum of an exoplanetary
     atmosphere. 
-    First, the two spectra will be summed, and read-out (2D image is collapsed column-wise). Then, if 
+    First, the two spectra will be summed, and read-out (2D image is collapsed column-wise). Then, the spectra are shifted
+    so they have the largest correlation (best alignment). Afterwards, a linear regression is made to find the wavelength/pixel
+    relation. and a moving mean filter is overlaid to smooth.
 
     """
     import scipy.signal
@@ -829,12 +831,8 @@ def the_thing(image, image2, sub_pixel, wl_ran, disper, slitpos, img_size, move=
     rin = bin_sum(image2, sub_pixel)
     r2 = read_out(rin) #sum image and readout 
     r1, r2 = int_r(r1, r2, wl_ran) #Interpolate to higher resolution
-    # print("\nBinning and read-out done")
-    
+
     if noiseinp == "y":
-        #rs= np.random.RandomState()
-        # no = rs.poisson(np.mean(image)*sub_pixel*sub_pixel,  size=(int(image.shape[0] /sub_pixel), int(image.shape[1]/sub_pixel)))
-        # ni = rs.poisson(np.mean(image2)*sub_pixel*sub_pixel, size=(int(image2.shape[0]/sub_pixel), int(image2.shape[1]/sub_pixel)))
         no =  noise1d(rout)
         ni = noise1d(rin)
     else: 
@@ -859,12 +857,7 @@ def the_thing(image, image2, sub_pixel, wl_ran, disper, slitpos, img_size, move=
         del first, second, autocor, cor, rout, rin
     if not move == "y":
         delta = 0
-    # noiseinp = input("Include photon noise? y/n: ")
-    # noiseinp = "n"    
-    
-    # r1 = scipy.ndimage.filters.uniform_filter1d(r1, size=5000)
-    # r2 = scipy.ndimage.filters.uniform_filter1d(r2, size=5000)
-    
+
     pos = (disper[0]+slitpos[0])*100.0 #Position of each wavelength on the detector
     from scipy.stats import linregress
     a, b, r, p, s = linregress(pos, np.arange(wl_ran[0], wl_ran[1])) #Linear regression to find the lambda/pixel correlation
@@ -874,10 +867,10 @@ def the_thing(image, image2, sub_pixel, wl_ran, disper, slitpos, img_size, move=
     wave = wavelength[np.max(np.where(wavelength<wl_ran[0]))+1:np.min(np.where(wavelength>wl_ran[1]))-1] #remove outlying entries, where the spectrum is not present (belo 300 nm, and above 1000) 
     r1 = r1[np.max(np.where(wavelength<wl_ran[0]))+1:np.min(np.where(wavelength>wl_ran[1]))-1] 
     r2 = r2[np.max(np.where(wavelength<wl_ran[0]))+1:np.min(np.where(wavelength>wl_ran[1]))-1]
-    # plt.plot(in_spec[:,0], in_spec[:,1]/in_spec2[:,1])
+    
     from astropy.convolution import convolve, Gaussian1DKernel
     r1 = convolve(r1,kernel = Gaussian1DKernel(4246.6)) #Moving Mean filter by convolution. Kernel is Gaussian, input is sigma
-    # print("Done! \nFirst spectrum complete, continuing to second:\n")
+
     r2 = convolve(r2,kernel = Gaussian1DKernel(4246.6)) #https://docs.astropy.org/en/stable/convolution/
     return r1, r2, wave, delta
 
@@ -905,8 +898,8 @@ def photon_convert(wavelength_array, flux_array, stellar_radius, distance):
     
     flux = np.zeros((flux_array.shape[0]))
     for i in range(flux_array.shape[0]):
-        flux[i] = flux_array[i]*(stellar_radius/distance)**2
-    spec = wavelength_array*flux/(co.h.cgs.value * co.c.cgs.value)*4.27
+        flux[i] = np.pi*flux_array[i]*(stellar_radius/distance)**2 #The pi is a geometric factor. See 1979ApJS...40....1K
+    spec = wavelength_array*flux/(co.h.cgs.value * co.c.cgs.value)
     return spec
 
 
