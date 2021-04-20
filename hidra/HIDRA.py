@@ -800,17 +800,26 @@ def noise1d(x, RON=5):
     return noise
 
 def noise_test(x):
-    noise = np.sqrt(abs(x))*np.random.normal(0,1)
+    noise = np.sqrt(abs(x))*np.random.normal(0, 1)
     return noise
 
 def sinusoidal(size, frequency, amplitude, phase):
     x = np.zeros((size))
     y = np.zeros((size))
-    for i in range(0,size):
-        x[i] = amplitude * np.cos(frequency * i - phase) #next x-value, using the new phase
-        x[i] = noise_test(x[i])
-        y[i] = amplitude * np.sin(frequency * i - phase) #and new y-value of coord.
-        y[i] = noise_test(y[i])
+    
+    frequency_x = frequency[0]
+    frequency_y = frequency[1]
+    
+    amplitude_x = amplitude[0]
+    amplitude_y = amplitude[1]
+    
+    phase_x = phase[0]
+    phase_y = phase[1]
+    for i in range(0, size):
+        x[i] = amplitude_x * np.cos(frequency_x * i - phase_x) #next x-value, using the new phase
+        # x[i] = x[i] + noise_test(x[i])
+        y[i] = amplitude_y * np.sin(frequency_y * i - phase_y) #and new y-value of coord.
+        # y[i] = y[i] + noise_test(y[i])
     return x, y
         
 def transmission_spec_func(image, image2, sub_pixel, wl_ran, disper, slitpos, img_size, move="y", noiseinp="n"):
