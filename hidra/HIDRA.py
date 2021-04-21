@@ -427,7 +427,7 @@ def disperser(wl_endpoints, jit_img, psf_ends, pos, image_size, dispersion, eff,
     # for i in range(0,101, steps):
         im = np.zeros((image_size[0],image_size[1])) #create temp. image
         
-        psf = AiryDisk2DKernel(temp[i], x_size=jit_img.shape[0], y_size=jit_img.shape[0]).array #PSF for this colour
+        psf = AiryDisk2DKernel(temp[i]*0.1, x_size=jit_img.shape[0], y_size=jit_img.shape[0]).array #PSF for this colour
         
         if secondary_source == 'y': #To account for the secondary light source perhaps not being fully within the psf
             # fold = folding(psf_img[:,:,i], jit_img)
@@ -903,6 +903,37 @@ def transmission_spec_func(spectrum1, spectrum2, wl_ran, disper, slitpos, img_si
     return spectrum1, spectrum2, wave, delta
 
 
+def photon_convert(wavelength_array, flux_array, stellar_radius, distance):
+    """
+    Function to convert stellar flux from SPECTRUM into photon counts per second per cm^2. 
+
+    Parameters
+    ----------
+    wavelength_array : array
+        Array with each entry being the wavelength, in cm
+    flux_array : array
+        SPECTRUM fluxes. Has to be in erg/s/cm^2/Å
+    stellar_radius : float
+        Stellar radius of the target star. 
+    distance : float
+        Distance to target star, in the same unit as stellar_radius
+
+    Returns
+    -------
+    spec : array
+        Photon counts per second per cm^2 in the specified wavelength. [No. of photons/s/cm^2]. 
+    """
+    import astropy.constants as co
+    
+    flux = np.zeros((flux_array.shape[0]))
+    for i in range(flux_array.shape[0]):
+        flux[i] = np.pi*flux_array[i]*(stellar_radius/distance)**2 #The pi is a geometric factor. See 1979ApJS...40....1K
+    spec = wavelength_array*flux/(co.h.cgs.value * co.c.cgs.value)
+    return spec
+
+
+#Trash or old functions be here:
+'''
 # def transmission_spec_func(image, image2, sub_pixel, wl_ran, disper, slitpos, img_size, move="y", noiseinp="n"):
 #     """
 #     Function used to process two stellar spectrum, so it is possible to analyze the transmission spectrum of an exoplanetary
@@ -964,37 +995,9 @@ def transmission_spec_func(spectrum1, spectrum2, wl_ran, disper, slitpos, img_si
 #     r2 = convolve(r2,kernel = Gaussian1DKernel(4246.6)) #https://docs.astropy.org/en/stable/convolution/
 #     return r1, r2, wave, delta
 
-def photon_convert(wavelength_array, flux_array, stellar_radius, distance):
-    """
-    Function to convert stellar flux from SPECTRUM into photon counts per second per cm^2. 
-
-    Parameters
-    ----------
-    wavelength_array : array
-        Array with each entry being the wavelength, in cm
-    flux_array : array
-        SPECTRUM fluxes. Has to be in erg/s/cm^2/Å
-    stellar_radius : float
-        Stellar radius of the target star. 
-    distance : float
-        Distance to target star, in the same unit as stellar_radius
-
-    Returns
-    -------
-    spec : array
-        Photon counts per second per cm^2 in the specified wavelength. [No. of photons/s/cm^2]. 
-    """
-    import astropy.constants as co
-    
-    flux = np.zeros((flux_array.shape[0]))
-    for i in range(flux_array.shape[0]):
-        flux[i] = np.pi*flux_array[i]*(stellar_radius/distance)**2 #The pi is a geometric factor. See 1979ApJS...40....1K
-    spec = wavelength_array*flux/(co.h.cgs.value * co.c.cgs.value)
-    return spec
 
 
-#Trash or old functions be here:
-'''
+
 def disperser(wl_endpoints, jit_img, psf_img, pos, image_size, dispersion, eff, 
               mask_img, steps=1, secondary_source='n', plot='n'):
     import sys

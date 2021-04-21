@@ -43,8 +43,8 @@ def int_r(r1, r2, rang):
 #         y[i] = amplitude * np.sin(frequency * i - phase) #and new y-value of coord.
 #         y[i] = noise_test(y[i])
 
-from datetime import datetime
-startTime = datetime.now()
+# from datetime import datetime
+# startTime = datetime.now()
 f = open("out.txt", "w")
 # del x_j, y_j
 # New jitter files:
@@ -64,11 +64,11 @@ def main(N):
     # plt.plot(x,y)
     # jitter
     
-    in_spec = np.loadtxt(inp.in_spec)
-    in_spec2 = np.loadtxt(inp.in_spec2)
+    # in_spec = np.loadtxt(inp.in_spec)
+    # in_spec2 = np.loadtxt(inp.in_spec2)
     wl_ran = inp.wl_ran
-    exp = inp.exp
-    slit = inp.slit
+    # exp = inp.exp
+    # slit = inp.slit
     CCD = np.load(inp.in_CCD)
     #### SETUP PHASE COMPLETE ####
     
@@ -77,17 +77,17 @@ def main(N):
                                             dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
     spectrum1 = HIDRA.prep_func(image1, CCD, sub_pixel, wl_ran)
     
-    startTime2 = datetime.now()   
+    # startTime2 = datetime.now()   
     for j in spectrum1[0:100]:
         f.write("{:e} , ".format(j))
     f.write("\n")
-    print(datetime.now() - startTime2)
+    # print(datetime.now() - startTime2)
     
     return spectrum1
 
 spectrum1 = main(5)
 f.close()
-print(datetime.now() - startTime)
+# print(datetime.now() - startTime)
 
 # print(spectrum1)
 
