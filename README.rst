@@ -4,7 +4,7 @@ HIDRA
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Hyperspectral Instrument Data Resemblance Algorithm
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This python 3.6+ package is capable of simulation spectroscopic observations of stellar spectra, from photons arriving at the telescope, to the photo-electrons being detected by a CCD. 
+This python 3.6+ package is capable of simulating 2D spectra from low-resolution spectrographs. It can simulate spectroscopic observations of stellar spectra, from photons arriving at the telescope, to the photo-electrons being detected by a CCD.  
 
 The scripts were created as a part of my Master's thesis, which was titled "Simulating multi-wavelength observations from low-resolution spectrographs".
 
