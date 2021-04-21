@@ -43,9 +43,9 @@ def int_r(r1, r2, rang):
 #         y[i] = amplitude * np.sin(frequency * i - phase) #and new y-value of coord.
 #         y[i] = noise_test(y[i])
 
-
-
-
+from datetime import datetime
+startTime = datetime.now()
+f = open("out.txt", "w")
 # del x_j, y_j
 # New jitter files:
 # for i in range(1, 21):
@@ -54,26 +54,59 @@ def int_r(r1, r2, rang):
     # np.save("runs/jitter/j"+str(i), j)
 
 
-spec_eff, spec_eff2, jitter, x_j, y_j, img_size, sub_pixel, pl_arc_mm, disper, mask, slitpos, background = HIDRA.setup(inp)
+def main(N):
 
-x, y = HIDRA.sinusoidal(1000, frequency=100, amplitude=10, phase=1)
-test = HIDRA.jitter_im(x,y, (101,101))
-plt.imshow(test)
-# plt.plot(x,y)
-# jitter
+    spec_eff, spec_eff2, jitter, x_j, y_j, img_size, sub_pixel, pl_arc_mm, disper, mask, slitpos, background = HIDRA.setup(inp)
+    
+    # x, y = HIDRA.sinusoidal(1000, frequency=100, amplitude=10, phase=1)
+    # test = HIDRA.jitter_im(x,y, (101,101))
+    # plt.imshow(test)
+    # plt.plot(x,y)
+    # jitter
+    
+    in_spec = np.loadtxt(inp.in_spec)
+    in_spec2 = np.loadtxt(inp.in_spec2)
+    wl_ran = inp.wl_ran
+    exp = inp.exp
+    slit = inp.slit
+    CCD = np.load(inp.in_CCD)
+    #### SETUP PHASE COMPLETE ####
+    
+    #### IMAGE FORMATION BEGINS ####
+    image1, image_wl1=HIDRA.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
+                                            dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
+    spectrum1 = HIDRA.prep_func(image1, CCD, sub_pixel, wl_ran)
+    
+    startTime2 = datetime.now()   
+    for j in spectrum1[0:100]:
+        f.write("{:e} , ".format(j))
+    f.write("\n")
+    print(datetime.now() - startTime2)
+    
+    return spectrum1
 
-in_spec = np.loadtxt(inp.in_spec)
-in_spec2 = np.loadtxt(inp.in_spec2)
-wl_ran = inp.wl_ran
-exp = inp.exp
-slit = inp.slit
-CCD = np.load(inp.in_CCD)
-#### SETUP PHASE COMPLETE ####
+spectrum1 = main(5)
+f.close()
+print(datetime.now() - startTime)
 
-#### IMAGE FORMATION BEGINS ####
-image1, image_wl1=HIDRA.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
-                                        dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
+# print(spectrum1)
 
+
+
+
+
+
+# for i in range(1):
+    
+#     r = spectrum1
+#     for j in r:
+#         f.write("{:e} , ".format(j))
+#     f.write("\n")
+# f.close()
+
+
+
+'''
 image2, image_wl2=HIDRA.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
                                         dispersion=disper, eff=spec_eff2, mask_img=mask, steps=1, plot='n')
 
@@ -94,7 +127,7 @@ with open('ro.txt','w') as f:
     np.savetxt(f, [ro], delimiter=',')
     
 del ri, ro, wave, delta 
-
+'''
 
 # for i in range(10):
 #     x_j, y_j = simfun.func_jitter(entries=(exp*inp.step), gain=0.15, dt=5)

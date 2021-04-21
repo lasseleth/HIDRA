@@ -778,7 +778,7 @@ def setup(input_file):
     return spec_eff, spec_eff2, jitter, x_j, y_j, img_size, sub_pixel, pl_arc_mm, disper, mask, slitpos, background
 
 
-def int_r(r1, r2, rang):
+def int_r(r1, rang):
     """
     Interpolator
     """
@@ -786,11 +786,25 @@ def int_r(r1, r2, rang):
     x= np.arange(len(r1))
     xnew = np.arange(0, len(r1), 0.001)
     f1 = interp1d(x, r1, kind=3, fill_value="extrapolate")
-    f2 = interp1d(x, r2, kind=3, fill_value="extrapolate")
+    # f2 = interp1d(x, r2, kind=3, fill_value="extrapolate")
     
     r1_int = f1(xnew)
-    r2_int = f2(xnew)
-    return r1_int, r2_int
+    # r2_int = f2(xnew)
+    return r1_int
+
+# def int_r(r1, r2, rang):
+#     """
+#     Interpolator
+#     """
+#     from scipy.interpolate import interp1d
+#     x= np.arange(len(r1))
+#     xnew = np.arange(0, len(r1), 0.001)
+#     f1 = interp1d(x, r1, kind=3, fill_value="extrapolate")
+#     f2 = interp1d(x, r2, kind=3, fill_value="extrapolate")
+    
+#     r1_int = f1(xnew)
+#     r2_int = f2(xnew)
+#     return r1_int, r2_int
 
 def noise1d(x, RON=5):
     noise = np.zeros((x.shape))
@@ -821,8 +835,14 @@ def sinusoidal(size, frequency, amplitude, phase):
         y[i] = amplitude_y * np.sin(frequency_y * i - phase_y) #and new y-value of coord.
         # y[i] = y[i] + noise_test(y[i])
     return x, y
-        
-def transmission_spec_func(image, image2, sub_pixel, wl_ran, disper, slitpos, img_size, move="y", noiseinp="n"):
+
+
+def prep_func(image, CCD, sub_pixel, wl_ran):
+    spec = read_out(bin_sum(image*CCD, sub_pixel)+noise1d(bin_sum(image, sub_pixel))) 
+    spec = int_r(spec, wl_ran) #interpolate to higher resolution
+    return spec
+
+def transmission_spec_func(spectrum1, spectrum2, wl_ran, disper, slitpos, img_size):
     """
     Function used to process two stellar spectrum, so it is possible to analyze the transmission spectrum of an exoplanetary
     atmosphere. 
@@ -832,40 +852,39 @@ def transmission_spec_func(image, image2, sub_pixel, wl_ran, disper, slitpos, im
 
     """
     import scipy.signal
-    import input_file as inp
-    CCD = np.load(inp.in_CCD)
-    rout = bin_sum(image, sub_pixel)
-    r1 = read_out(rout) 
+    # import input_file as inp
     
-    rin = bin_sum(image2, sub_pixel)
-    r2 = read_out(rin) #sum image and readout 
-    r1, r2 = int_r(r1, r2, wl_ran) #Interpolate to higher resolution
+    # CCD = np.load(inp.in_CCD)
+    # rout = bin_sum(image, sub_pixel)
+    # r1 = read_out(rout) 
+    
+    # rin = bin_sum(image2, sub_pixel)
+    # r2 = read_out(rin) #sum image and readout 
+    # r1, r2 = int_r(r1, r2, wl_ran) #Interpolate to higher resolution
 
-    if noiseinp == "y":
-        no =  noise1d(rout)
-        ni = noise1d(rin)
-    else: 
-        no=0
-        ni=0   
+    # if noiseinp == "y":
+    #     no =  noise1d(rout)
+    #     ni = noise1d(rin)
+    # else: 
+    #     no=0
+    #     ni=0   
         
           
-    if move == "y":
-        autocor = scipy.signal.correlate(r1, r1, mode="same") #perform autocorr.
-        cor = scipy.signal.correlate(r1, r2, mode="same") #Regular correlation
-        first = np.argmax(autocor)
-        second = np.argmax(cor)
-        delta = first-second #amount of sub-pixels to move r1, for the two spectra to overlap
+    # if move == "y":
+    autocor = scipy.signal.correlate(spectrum1, spectrum1, mode="same") #perform autocorr.
+    cor = scipy.signal.correlate(spectrum1, spectrum2, mode="same") #Regular correlation
+    first = np.argmax(autocor)
+    second = np.argmax(cor)
+    delta = first-second #amount of sub-pixels to move r1, for the two spectra to overlap
         
-        if noiseinp == "y":
-            rout = read_out(bin_sum(image*CCD, sub_pixel)+no) 
-            rin = read_out(bin_sum(image2*CCD, sub_pixel)+ni)
-            r1, r2 = int_r(rout, rin, wl_ran)
+        # if noiseinp == "y":
+
+    # r1, r2 = int_r(spectrum1, spectrum2, wl_ran)
+    spectrum1 = np.roll(spectrum1, delta) #Move r1
         
-        r1 = np.roll(r1, delta) #Move r1
-        
-        del first, second, autocor, cor, rout, rin
-    if not move == "y":
-        delta = 0
+    del first, second, autocor, cor#, rout, rin
+    # if not move == "y":
+    #     delta = 0
 
     pos = (disper[0]+slitpos[0])*100.0 #Position of each wavelength on the detector
     from scipy.stats import linregress
@@ -874,14 +893,76 @@ def transmission_spec_func(image, image2, sub_pixel, wl_ran, disper, slitpos, im
     del a, b, r, p, s, 
     
     wave = wavelength[np.max(np.where(wavelength<wl_ran[0]))+1:np.min(np.where(wavelength>wl_ran[1]))-1] #remove outlying entries, where the spectrum is not present (belo 300 nm, and above 1000) 
-    r1 = r1[np.max(np.where(wavelength<wl_ran[0]))+1:np.min(np.where(wavelength>wl_ran[1]))-1] 
-    r2 = r2[np.max(np.where(wavelength<wl_ran[0]))+1:np.min(np.where(wavelength>wl_ran[1]))-1]
+    spectrum1 = spectrum1[np.max(np.where(wavelength<wl_ran[0]))+1:np.min(np.where(wavelength>wl_ran[1]))-1] 
+    spectrum2 = spectrum2[np.max(np.where(wavelength<wl_ran[0]))+1:np.min(np.where(wavelength>wl_ran[1]))-1]
     
     from astropy.convolution import convolve, Gaussian1DKernel
-    r1 = convolve(r1,kernel = Gaussian1DKernel(4246.6)) #Moving Mean filter by convolution. Kernel is Gaussian, input is sigma
+    spectrum1 = convolve(spectrum1,kernel = Gaussian1DKernel(4246.6)) #Moving Mean filter by convolution. Kernel is Gaussian, input is sigma
 
-    r2 = convolve(r2,kernel = Gaussian1DKernel(4246.6)) #https://docs.astropy.org/en/stable/convolution/
-    return r1, r2, wave, delta
+    spectrum2 = convolve(spectrum2,kernel = Gaussian1DKernel(4246.6)) #https://docs.astropy.org/en/stable/convolution/
+    return spectrum1, spectrum2, wave, delta
+
+
+# def transmission_spec_func(image, image2, sub_pixel, wl_ran, disper, slitpos, img_size, move="y", noiseinp="n"):
+#     """
+#     Function used to process two stellar spectrum, so it is possible to analyze the transmission spectrum of an exoplanetary
+#     atmosphere. 
+#     First, the two spectra will be summed, and read-out (2D image is collapsed column-wise). Then, the spectra are shifted
+#     so they have the largest correlation (best alignment). Afterwards, a linear regression is made to find the wavelength/pixel
+#     relation. and a moving mean filter is overlaid to smooth.
+
+#     """
+#     import scipy.signal
+#     import input_file as inp
+#     CCD = np.load(inp.in_CCD)
+#     rout = bin_sum(image, sub_pixel)
+#     r1 = read_out(rout) 
+    
+#     rin = bin_sum(image2, sub_pixel)
+#     r2 = read_out(rin) #sum image and readout 
+#     r1, r2 = int_r(r1, r2, wl_ran) #Interpolate to higher resolution
+
+#     if noiseinp == "y":
+#         no =  noise1d(rout)
+#         ni = noise1d(rin)
+#     else: 
+#         no=0
+#         ni=0   
+        
+          
+#     if move == "y":
+#         autocor = scipy.signal.correlate(r1, r1, mode="same") #perform autocorr.
+#         cor = scipy.signal.correlate(r1, r2, mode="same") #Regular correlation
+#         first = np.argmax(autocor)
+#         second = np.argmax(cor)
+#         delta = first-second #amount of sub-pixels to move r1, for the two spectra to overlap
+        
+#         if noiseinp == "y":
+#             rout = read_out(bin_sum(image*CCD, sub_pixel)+no) 
+#             rin = read_out(bin_sum(image2*CCD, sub_pixel)+ni)
+#             r1, r2 = int_r(rout, rin, wl_ran)
+        
+#         r1 = np.roll(r1, delta) #Move r1
+        
+#         del first, second, autocor, cor, rout, rin
+#     if not move == "y":
+#         delta = 0
+
+#     pos = (disper[0]+slitpos[0])*100.0 #Position of each wavelength on the detector
+#     from scipy.stats import linregress
+#     a, b, r, p, s = linregress(pos, np.arange(wl_ran[0], wl_ran[1])) #Linear regression to find the lambda/pixel correlation
+#     wavelength = a*np.arange(img_size[1]*100.0)+(b)
+#     del a, b, r, p, s, 
+    
+#     wave = wavelength[np.max(np.where(wavelength<wl_ran[0]))+1:np.min(np.where(wavelength>wl_ran[1]))-1] #remove outlying entries, where the spectrum is not present (belo 300 nm, and above 1000) 
+#     r1 = r1[np.max(np.where(wavelength<wl_ran[0]))+1:np.min(np.where(wavelength>wl_ran[1]))-1] 
+#     r2 = r2[np.max(np.where(wavelength<wl_ran[0]))+1:np.min(np.where(wavelength>wl_ran[1]))-1]
+    
+#     from astropy.convolution import convolve, Gaussian1DKernel
+#     r1 = convolve(r1,kernel = Gaussian1DKernel(4246.6)) #Moving Mean filter by convolution. Kernel is Gaussian, input is sigma
+
+#     r2 = convolve(r2,kernel = Gaussian1DKernel(4246.6)) #https://docs.astropy.org/en/stable/convolution/
+#     return r1, r2, wave, delta
 
 def photon_convert(wavelength_array, flux_array, stellar_radius, distance):
     """
