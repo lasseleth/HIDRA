@@ -369,6 +369,31 @@ def mag(mag_star, mag_ref=0):
 
 
 
+# def jitter_im(x, y, psf_size):
+#     ''' Creates a jitter "image" - a matrix of the same dimensions (x & y) as the psf, used in the folding function
+#     NOTE: Will round of the position of the jitter to nearest subpixel!
+
+#     Parameters
+#     ----------
+#     x : array
+#         Input jitter x-coord.
+#     y : array
+#         Input jitter y-coord.
+#     psf_size : int, two values
+#         Size of the psf.
+
+#     Returns
+#     -------
+#     jitter : array
+#         Jitter image, where each point where the jitter "stops" has a +1 value. All other points are zero.
+#     '''
+#     jitter=np.zeros(psf_size) # Setup image
+#     # jitter2=np.zeros(psf_size)
+#     for i in range(len(x)):
+#         jitter[(x[i]+(psf_size[0]/2)).astype(int), (y[i]+(psf_size[1]/2)).astype(int)]= jitter[(x[i]+(psf_size[0]/2)).astype(int), (y[i]+(psf_size[1]/2)).astype(int)]+1
+#         # jitter2[x[i].astype(int)+int(np.floor(psf_size[0]/2)), y[i].astype(int)+int(np.floor(psf_size[1]/2))]= jitter[x[i].astype(int)+int(np.floor(psf_size[0]/2)), y[i].astype(int)+int(np.floor(psf_size[1]/2))]+1 # Create jitter "image". +1 to every point where the jitter "hits"
+#     return jitter#, jitter2
+
 def jitter_im(x, y, psf_size):
     ''' Creates a jitter "image" - a matrix of the same dimensions (x & y) as the psf, used in the folding function
     NOTE: Will round of the position of the jitter to nearest subpixel!
@@ -390,9 +415,13 @@ def jitter_im(x, y, psf_size):
     jitter=np.zeros(psf_size) # Setup image
     # jitter2=np.zeros(psf_size)
     for i in range(len(x)):
-        jitter[(x[i]+(psf_size[0]/2)).astype(int), (y[i]+(psf_size[1]/2)).astype(int)]= jitter[(x[i]+(psf_size[0]/2)).astype(int), (y[i]+(psf_size[1]/2)).astype(int)]+1
-        # jitter2[x[i].astype(int)+int(np.floor(psf_size[0]/2)), y[i].astype(int)+int(np.floor(psf_size[1]/2))]= jitter[x[i].astype(int)+int(np.floor(psf_size[0]/2)), y[i].astype(int)+int(np.floor(psf_size[1]/2))]+1 # Create jitter "image". +1 to every point where the jitter "hits"
+        rang1 = (x[i]+(psf_size[0]/2)).astype(int) 
+        rang2 = (y[i]+(psf_size[1]/2)).astype(int)
+        # print(rang1, rang2)
+        jitter[rang1, rang2] = jitter[rang1, rang2]+1
+        # Create jitter "image". +1 to every point where the jitter "hits"
     return jitter#, jitter2
+
 
 def folding(psf_image, jitter_image, mode='same', boundary='fill'):
     #Clutter function, might as well just use signal.convolve2d 
@@ -818,23 +847,51 @@ def noise_test(x):
     return noise
 
 def sinusoidal(size, frequency, amplitude, phase):
+    """
+    Function to generate sinusoidal jitter
+    
+    Parameters
+    ----------
+    size : int
+        Size of the desired output array.
+    frequency : list
+        List with frequencies
+    amplitude : list
+        List of amplitudes. Must be the same size as the frequency list
+    phase : float
+        Phase of the sinusoidal.
+
+    Returns
+    -------
+    x : array
+
+    """
+    if not (len(frequency)) == (len(amplitude)):
+        raise TypeError("Frequency array must be same length as amplitude array")
     x = np.zeros((size))
-    y = np.zeros((size))
+    for j in range(len(frequency)):
+        for i in range(size):
+            x[i] = x[i] + amplitude[j] * np.cos(frequency[j] * i - phase)  
+    return x
+
+# def sinusoidal(size, frequency, amplitude, phase):
+#     x = np.zeros((size))
+#     y = np.zeros((size))
     
-    frequency_x = frequency[0]
-    frequency_y = frequency[1]
+#     frequency_x = frequency[0]
+#     frequency_y = frequency[1]
     
-    amplitude_x = amplitude[0]
-    amplitude_y = amplitude[1]
+#     amplitude_x = amplitude[0]
+#     amplitude_y = amplitude[1]
     
-    phase_x = phase[0]
-    phase_y = phase[1]
-    for i in range(0, size):
-        x[i] = amplitude_x * np.cos(frequency_x * i - phase_x) #next x-value, using the new phase
-        # x[i] = x[i] + noise_test(x[i])
-        y[i] = amplitude_y * np.sin(frequency_y * i - phase_y) #and new y-value of coord.
-        # y[i] = y[i] + noise_test(y[i])
-    return x, y
+#     phase_x = phase[0]
+#     phase_y = phase[1]
+#     for i in range(0, size):
+#         x[i] = amplitude_x * np.cos(frequency_x * i - phase_x) #next x-value, using the new phase
+#         # x[i] = x[i] + noise_test(x[i])
+#         y[i] = amplitude_y * np.sin(frequency_y * i - phase_y) #and new y-value of coord.
+#         # y[i] = y[i] + noise_test(y[i])
+#     return x, y
 
 
 def prep_func(image, CCD, sub_pixel, wl_ran):
