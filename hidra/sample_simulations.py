@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import input_file as inp
 import HIDRA
 import scipy.signal
+import random
+
 
 def rms(x):
     return np.sqrt(np.mean(x**2))
@@ -45,7 +47,7 @@ def int_r(r1, r2, rang):
 
 # from datetime import datetime
 # startTime = datetime.now()
-f = open("out.txt", "w")
+f = open("out.txt", "a")
 # del x_j, y_j
 # New jitter files:
 # for i in range(1, 21):
@@ -63,6 +65,20 @@ def main(N):
     # plt.imshow(test)
     # plt.plot(x,y)
     # jitter
+    x_jit, y_jit = HIDRA.sinusoidal(size=inp.exp*inp.step, frequency=(random.random()*1, random.random()*1), amplitude=(10, 10), phase=(-1,1))
+
+    # for i in range(10):
+    #     x_temp, y_temp = HIDRA.sinusoidal(size=inp.exp*inp.step, (10, 10), amplitude=(10, 10), phase=(-1,1))
+    #     x_jit = x_jit + x_temp
+    #     y_jit = y_jit + y_temp
+    # x_jit, y_jit = HIDRA.sinusoidal(size=inp.exp*inp.step, (1, 1), amplitude=(10, 10), phase=(-1,1))
+    
+    # x_temp, y_temp = HIDRA.sinusoidal(size=inp.exp*inp.step, (10, 10), amplitude=(10, 10), phase=(-1,1))
+    
+    
+    
+    # print(x_jit)
+    # jitter = HIDRA.jitter_im(x_jit, y_jit, (101, 101))
     
     # in_spec = np.loadtxt(inp.in_spec)
     # in_spec2 = np.loadtxt(inp.in_spec2)
@@ -78,14 +94,14 @@ def main(N):
     spectrum1 = HIDRA.prep_func(image1, CCD, sub_pixel, wl_ran)
     
     # startTime2 = datetime.now()   
-    for j in spectrum1[0:100]:
+    for j in spectrum1:
         f.write("{:e} , ".format(j))
     f.write("\n")
     # print(datetime.now() - startTime2)
     
     return spectrum1
 
-spectrum1 = main(5)
+spectrum1 = main(2)
 f.close()
 # print(datetime.now() - startTime)
 
