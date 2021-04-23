@@ -1,0 +1,17 @@
+Breakdown of a single simulation run
+
+Step 1: Necessary packages are imported. These include nummpy, scipy, and random, aside from the file with all the functions (HIDRA.py) and the input file (input_file.py). For convinience, matplotlib.pyplot is also imported
+
+Step 2: Output file is specified and opened
+
+Step 3: Main function is run. This is the main workload.
+
+Step 3.1: The setup function is called. This function takes all the input values from the input_file and checks the shape. If some arrays are not the correct length, the are interpolated to size, using the function "interp". If the jitter is not specified, it will be generated.  
+
+Step 3.2: If any changes are to be made to the jitter, they should be implemented at this step. For example, if an entirely different jitter is used (such as sinusoidal), they can be generated using the "sunisoidal" function. If that is the case, remember to also run the "jitter_im" function using the x- and y-arrays as inputs to generate a new jitter image.
+
+
+
+
+
+Step 5:
