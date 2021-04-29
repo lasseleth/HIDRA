@@ -87,9 +87,9 @@ In order to simulate a single transmission spectrum of an exoplanet transiting a
    ri = ri+ni
    ro = ro+no
    del no, ni, image1, image2
-   ro, ri, wave, delta = HIDRA.the_thing(image=ro, image2=ri, sub_pixel=sub_pixel, wl_ran=inp.wl_ran, disper=disper, 
+   ro, ri, wave, delta = HIDRA.transmission_spec_func(image=ro, image2=ri, sub_pixel=sub_pixel, wl_ran=inp.wl_ran, disper=disper, 
                                             slitpos=slitpos, img_size=img_size, move="y", noiseinp="n")
-   plt.plot(wave, (r1-r2)/r1)
+   plt.plot(wave, (ro-ri)/ro)
    
 .. figure:: sample_transmission.png
 The resultant transmission spectrum. Evidently, this setup seems unlikely to detect the atmosphere of this planet. To truly tell though, you should repeat the simulations, using a different jitter each time, and use all observations in the data-processing.
