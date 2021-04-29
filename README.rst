@@ -10,7 +10,7 @@ The scripts were created as a part of my Master's thesis, which was titled "Simu
 
 Author: Lasse L. S. Berthelsen
 
-- `More documentation <https://hidra.readthedocs.io/en/latest/>`_
+- `More documentation <https://github.com/lasseleth/HIDRA/blob/master/StepGuide.pdf>`_
 - `Thesis <https://github.com/lasseleth/HIDRA/blob/master/thesis/Thesis_Lasse.pdf>`_
 
 The spectra included in the *sample_values* folder were generated using `SPECTRUM <http://www.appstate.edu/~grayro/spectrum/spectrum.html>`_.
