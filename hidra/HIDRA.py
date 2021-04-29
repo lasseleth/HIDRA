@@ -456,7 +456,7 @@ def disperser(wl_endpoints, jit_img, psf_ends, pos, image_size, dispersion, eff,
     # for i in range(0,101, steps):
         im = np.zeros((image_size[0],image_size[1])) #create temp. image
         
-        psf = AiryDisk2DKernel(temp[i]*0.1, x_size=jit_img.shape[0], y_size=jit_img.shape[0]).array #PSF for this colour
+        psf = AiryDisk2DKernel(temp[i], x_size=jit_img.shape[0], y_size=jit_img.shape[0]).array #PSF for this colour
         
         if secondary_source == 'y': #To account for the secondary light source perhaps not being fully within the psf
             # fold = folding(psf_img[:,:,i], jit_img)
@@ -835,7 +835,32 @@ def int_r(r1, rang):
 #     r2_int = f2(xnew)
 #     return r1_int, r2_int
 
-def noise1d(x, RON=5):
+def noise2d(x, RON=5):
+    """
+    Function to generate noise of a 2D array.
+
+    Parameters
+    ----------
+    x : array
+        Input array. Could be a simulated spectrum
+    RON : float
+        Read-out noise of the CCD, measured in photo-electrons. The default is 5.
+
+    Returns
+    -------
+    noise : array
+        Noise-array, same dimensions as the input array. The two can then be added together for the "actual image"
+        
+        The noise is calculated with the \hyperlink{noise2d}{noise2d} function. 
+        It uses the following equation:
+	    
+        N_{i,j} = [sqrt(counts_{i,j})+RON]*\mathcal{N}(0,1)
+        
+        with N_{i,j} being the noise of entry i,j, counts_{i,j} is the value of the i,j'th entry, RON is the 
+        Read-Out Noise of the CCD, and \mathcal{N}(0,1) is a random number drawn from a normal distribution, 
+        between 0 and 1.
+
+    """
     noise = np.zeros((x.shape))
     for i in range(x.shape[0]):
         for j in range(x.shape[1]):
@@ -894,9 +919,10 @@ def sinusoidal(size, frequency, amplitude, phase):
 #     return x, y
 
 
-def prep_func(image, CCD, sub_pixel, wl_ran):
-    spec = read_out(bin_sum(image*CCD, sub_pixel)+noise1d(bin_sum(image, sub_pixel))) 
-    spec = int_r(spec, wl_ran) #interpolate to higher resolution
+def prep_func(image, CCD, sub_pixel, wl_ran, interpolate = "n"):
+    spec = read_out(bin_sum(image*CCD, sub_pixel)+noise2d(bin_sum(image, sub_pixel))) 
+    if interpolate == 'y':
+        spec = int_r(spec, wl_ran) #interpolate to higher resolution
     return spec
 
 def transmission_spec_func(spectrum1, spectrum2, wl_ran, disper, slitpos, img_size):

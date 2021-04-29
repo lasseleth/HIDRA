@@ -45,8 +45,8 @@ def int_r(r1, r2, rang):
 #         y[i] = amplitude * np.sin(frequency * i - phase) #and new y-value of coord.
 #         y[i] = noise_test(y[i])
 
-# from datetime import datetime
-# startTime = datetime.now()
+from datetime import datetime
+startTime = datetime.now()
 f = open("out.txt", "a")
 # del x_j, y_j
 # New jitter files:
@@ -65,8 +65,16 @@ def main(N):
     # plt.imshow(test)
     # plt.plot(x,y)
     # jitter
-    x_jit, y_jit = HIDRA.sinusoidal(size=inp.exp*inp.step, frequency=(random.random()*1, random.random()*1), amplitude=(10, 10), phase=(-1,1))
+    
+    freq = [random.randrange(0, 5, 1)/1000, random.randrange(0, 10, 1)/1000, random.randrange(0, 100, 1)/1000, random.randrange(0, 1000, 1)/1000, random.randrange(0, 10000, 1)/1000]
+    ampl = [random.randrange(0, 1, 1)/1000, random.randrange(0, 10, 1)/1000, random.randrange(0, 100, 1)/1000, random.randrange(0, 1000, 1)/1000, random.randrange(0, 10000, 1)/1000]
+    x_jit = HIDRA.sinusoidal(size=inp.exp*inp.step, frequency=freq, amplitude= ampl, phase=1)
 
+    freq = [random.randrange(0, 5, 1)/1000, random.randrange(0, 10, 1)/1000, random.randrange(0, 100, 1)/1000, random.randrange(0, 1000, 1)/1000, random.randrange(0, 10000, 1)/1000]
+    ampl = [random.randrange(0, 1, 1)/1000, random.randrange(0, 10, 1)/1000, random.randrange(0, 100, 1)/1000, random.randrange(0, 1000, 1)/1000, random.randrange(0, 10000, 1)/1000]
+    y_jit = HIDRA.sinusoidal(size=inp.exp*inp.step, frequency=freq, amplitude= ampl, phase=1)
+
+    # jitter = HIDRA.jitter_im(x_jit, y_jit, (101, 101))
     # for i in range(10):
     #     x_temp, y_temp = HIDRA.sinusoidal(size=inp.exp*inp.step, (10, 10), amplitude=(10, 10), phase=(-1,1))
     #     x_jit = x_jit + x_temp
@@ -99,11 +107,37 @@ def main(N):
     f.write("\n")
     # print(datetime.now() - startTime2)
     
-    return spectrum1
+    return spectrum1, image1, image_wl1
 
-spectrum1 = main(2)
+spectrum1, image1, image_wl1 = main(1)  
 f.close()
-# print(datetime.now() - startTime)
+
+fd=open("out.txt","r")
+d=fd.read()
+fd.close()
+m=d.split("\n")
+s="\n".join(m[:-1])
+fd=open("out.txt","w+")
+for i in range(len(s)):
+    fd.write(s[i])
+fd.close()
+
+f = open("out.txt", "a")
+
+def get_size(fileobject):
+    fileobject.seek(0,2) # move the cursor to the end of the file
+    size = fileobject.tell()
+    return size
+#and then
+fsize = get_size(f)
+f.truncate(fsize - 1)
+f.close()
+
+
+
+
+
+print(datetime.now() - startTime)
 
 # print(spectrum1)
 
