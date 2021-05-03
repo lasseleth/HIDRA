@@ -49,7 +49,7 @@ To make a simple simulation, my code might look like:
    #Setup the code using user-defined inputs. These can be adjusted in the input file
    spec_eff, spec_eff2, jitter, x_j, y_j, psf, img_size, sub_pixel, pl_arc_pix, disper, mask, slitpos, background = HIDRA.setup(inp)
    
-   image, image_wl=HIDRA.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_img=psf, pos=slitpos, image_size=img_size, 
+   image, image_wl=HIDRA.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter, psf_img=psf, pos=slitpos, image_size=img_size, 
                                         dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
 .. figure:: single_spec.png
 The output of a single simulation run. 
@@ -74,10 +74,10 @@ In order to simulate a single transmission spectrum of an exoplanet transiting a
    #### SETUP PHASE COMPLETE ####
    
    #### IMAGE FORMATION BEGINS ####
-   image1, image_wl1=HIDRA.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
+   image1, image_wl1=HIDRA.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
                                            dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
    
-   image2, image_wl2=HIDRA.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
+   image2, image_wl2=HIDRA.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
                                            dispersion=disper, eff=spec_eff2, mask_img=mask, steps=1, plot='n')
    
    ro = image1
