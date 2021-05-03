@@ -430,7 +430,7 @@ def folding(psf_image, jitter_image, mode='same', boundary='fill'):
     return folded
 
 #The correct disperser::::
-def disperser(wl_endpoints, jit_img, psf_ends, pos, image_size, dispersion, eff, 
+def spatial_dispersion(wl_endpoints, jit_img, psf_ends, pos, image_size, dispersion, eff, 
               mask_img, steps=1, secondary_source='n', plot='n'):
     import sys
     from scipy import signal
@@ -773,7 +773,7 @@ def setup(input_file):
         bg_psf = np.ones((101, 101, wl_ran[1]-wl_ran[0]))
         x_j, y_j = func_jitter(entries=(exp*step), gain=0.15, dt=5) #This jitter will be a single point at the center of the jitter image
         bg_jit = jitter_im(x= x_j, y= y_j, psf_size=(bg_psf[:,:,0].shape[0], bg_psf[:,:,0].shape[0]) ) #Creating jitter "image"
-        background, background_wl = disperser(wl_endpoints=wl_ran, jit_img=bg_jit, psf_img=bg_psf, pos=slitpos, image_size=img_size, dispersion=disper, eff = bg_spec[:,1], mask_img=mask, steps=1, plot='n' )
+        background, background_wl = spatial_dispersion(wl_endpoints=wl_ran, jit_img=bg_jit, psf_img=bg_psf, pos=slitpos, image_size=img_size, dispersion=disper, eff = bg_spec[:,1], mask_img=mask, steps=1, plot='n' )
         np.save('background.npy', background) #saving the background image for later use. 
         del x_j, y_j, bg_jit, background_wl, bg_spec #getting rid of unnecessary variables
     else:

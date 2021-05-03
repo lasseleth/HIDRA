@@ -97,7 +97,7 @@ def main(N):
     #### SETUP PHASE COMPLETE ####
     
     #### IMAGE FORMATION BEGINS ####
-    image1, image_wl1=HIDRA.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
+    image1, image_wl1=HIDRA.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
                                             dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
     spectrum1 = HIDRA.prep_func(image1, CCD, sub_pixel, wl_ran)
     
@@ -110,6 +110,21 @@ def main(N):
     return spectrum1, image1, image_wl1
 
 spectrum1, image1, image_wl1 = main(1)  
+
+spec_eff, spec_eff2, jitter, x_j, y_j, img_size, sub_pixel, pl_arc_mm, disper, mask, slitpos, background = HIDRA.setup(inp)
+wl_ran = inp.wl_ran
+CCD = np.load(inp.in_CCD)
+image2, image_wl2 = HIDRA.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
+                                  dispersion=disper, eff=spec_eff2, mask_img=mask, steps=1, plot='n')
+
+spectrum2 = HIDRA.prep_func(image2, CCD, sub_pixel, wl_ran)
+
+ro, ri, wave, delta = HIDRA.transmission_spec_func(spectrum1, spectrum2, wl_ran, disper, slitpos, img_size)
+
+# (image=ro, image2=ri, sub_pixel=sub_pixel, wl_ran=inp.wl_ran, disper=disper,
+                                         # slitpos=slitpos, img_size=img_size, move="y", noiseinp="n")
+plt.plot(wave, (ro-ri)/ro)
+
 f.close()
 
 fd=open("out.txt","r")
@@ -157,7 +172,7 @@ print(datetime.now() - startTime)
 
 
 '''
-image2, image_wl2=HIDRA.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
+image2, image_wl2=HIDRA.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
                                         dispersion=disper, eff=spec_eff2, mask_img=mask, steps=1, plot='n')
 
 ro = image1
@@ -190,10 +205,10 @@ del ri, ro, wave, delta
 #     slit = inp.slit
 #     CCD = np.load(inp.in_CCD)
     
-#     image1, image_wl1=simfun.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
+#     image1, image_wl1=simfun.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
 #                                             dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
     
-#     image2, image_wl2=simfun.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
+#     image2, image_wl2=simfun.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter, psf_ends=[15, 45], pos=slitpos, image_size=img_size, 
 #                                             dispersion=disper, eff=spec_eff2, mask_img=mask, steps=1, plot='n')
 #     ro = image1
 #     ri = image2
@@ -239,10 +254,10 @@ del ri, ro, wave, delta
     
     
     
-#     image1, image1_wl=simfun.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_img=psf, pos=slitpos, image_size=img_size, 
+#     image1, image1_wl=simfun.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter, psf_img=psf, pos=slitpos, image_size=img_size, 
 #                                       dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
     
-#     image2, image2_wl=simfun.disperser(wl_endpoints=wl_ran, jit_img=jitter2, psf_img=psf, pos=slitpos, image_size=img_size, 
+#     image2, image2_wl=simfun.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter2, psf_img=psf, pos=slitpos, image_size=img_size, 
 #                                         dispersion=disper, eff=spec_eff2, mask_img=mask, steps=1, plot='n')
     
 #     #np.save("e600/slit"+str(slit[1])+"/r"+str(i)+"/out", image1)
@@ -266,10 +281,10 @@ del ri, ro, wave, delta
 #     jitter2 = simfun.jitter_im(x= jitter2[:,0], y= jitter2[:,1], psf_size=(psf[:,:,0].shape[0], psf[:,:,0].shape[0]) )
     
     
-#     image1, image1_wl=simfun.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_img=psf, pos=slitpos, image_size=img_size, 
+#     image1, image1_wl=simfun.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter, psf_img=psf, pos=slitpos, image_size=img_size, 
 #                                       dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
     
-#     image2, image2_wl=simfun.disperser(wl_endpoints=wl_ran, jit_img=jitter2, psf_img=psf, pos=slitpos, image_size=img_size, 
+#     image2, image2_wl=simfun.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter2, psf_img=psf, pos=slitpos, image_size=img_size, 
 #                                         dispersion=disper, eff=spec_eff2, mask_img=mask, steps=1, plot='n')
     
 #     np.save("1200/slit"+str(slit[1])+"/r"+str(i)+"/out", image1)
@@ -291,10 +306,10 @@ del ri, ro, wave, delta
 #     jitter2 = simfun.jitter_im(x= jitter2[:,0], y= jitter2[:,1], psf_size=(psf[:,:,0].shape[0], psf[:,:,0].shape[0]) )
     
     
-#     image1, image1_wl=simfun.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_img=psf, pos=slitpos, image_size=img_size, 
+#     image1, image1_wl=simfun.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter, psf_img=psf, pos=slitpos, image_size=img_size, 
 #                                      dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
     
-#     image2, image2_wl=simfun.disperser(wl_endpoints=wl_ran, jit_img=jitter2, psf_img=psf, pos=slitpos, image_size=img_size, 
+#     image2, image2_wl=simfun.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter2, psf_img=psf, pos=slitpos, image_size=img_size, 
 #                                        dispersion=disper, eff=spec_eff2, mask_img=mask, steps=1, plot='n')
     
 #     np.save("runs/slit"+str(slit[1])+"/r"+str(i)+"/out", image1)
@@ -316,10 +331,10 @@ del ri, ro, wave, delta
 #     jitter2 = simfun.jitter_im(x= jitter2[:,0], y= jitter2[:,1], psf_size=(psf[:,:,0].shape[0], psf[:,:,0].shape[0]) )
     
     
-#     image1, image1_wl=simfun.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_img=psf, pos=slitpos, image_size=img_size, 
+#     image1, image1_wl=simfun.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter, psf_img=psf, pos=slitpos, image_size=img_size, 
 #                                      dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
     
-#     image2, image2_wl=simfun.disperser(wl_endpoints=wl_ran, jit_img=jitter2, psf_img=psf, pos=slitpos, image_size=img_size, 
+#     image2, image2_wl=simfun.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter2, psf_img=psf, pos=slitpos, image_size=img_size, 
 #                                        dispersion=disper, eff=spec_eff2, mask_img=mask, steps=1, plot='n')
     
 #     np.save("runs/slit"+str(slit[1])+"/r"+str(i)+"/out", image1)
@@ -330,7 +345,7 @@ del ri, ro, wave, delta
 check = input("Run simulation? y/n: ")
 
 if check == "y":
-    image, image_wl=simfun.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_img=psf, pos=slitpos, image_size=img_size, 
+    image, image_wl=simfun.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter, psf_img=psf, pos=slitpos, image_size=img_size, 
                                         dispersion=disper, eff=spec_eff, mask_img=mask, steps=1, plot='n')
 
     # lam = (image_wl+np.mean([wl_ran[0], wl_ran[1]])*10**(-80))/(image+10**(-80)) #To find the dispersion wavelength (for calibrating later)
@@ -358,7 +373,7 @@ if check == "y":
     jitter2 = np.stack((x_j2, y_j2), axis=-1)
     jitter2 = simfun.jitter_im(x= jitter2[:,0], y= jitter2[:,1], psf_size=(psf[:,:,0].shape[0], psf[:,:,0].shape[0]) )
     
-    image2, image2_wl=simfun.disperser(wl_endpoints=wl_ran, jit_img=jitter2, psf_img=psf, pos=slitpos, image_size=img_size, 
+    image2, image2_wl=simfun.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter2, psf_img=psf, pos=slitpos, image_size=img_size, 
                                             dispersion=disper, eff=spec_eff2, mask_img=mask, steps=1, plot='n')
     
     number = round(rms(y_j2*(pl_arc_mm/sub_pixel)), 3)
@@ -905,7 +920,7 @@ plt.tight_layout()
 # jitter = np.stack((x_j, y_j), axis=-1)
 # jitter =simfun.jitter_im(jitter[:,0], jitter[:,1], psf_size=(psf[:,:,0].shape[0], psf[:,:,0].shape[0]))
 
-# image2, image2_wl=simfun.disperser(wl_endpoints=wl_ran, jit_img=jitter, psf_img=psf, pos=slitpos, image_size=img_size, 
+# image2, image2_wl=simfun.spatial_dispersion(wl_endpoints=wl_ran, jit_img=jitter, psf_img=psf, pos=slitpos, image_size=img_size, 
 #                                         dispersion=disper, eff=spec_eff2, mask_img=mask, steps=1, plot='n')
 # # image_all = image + background
 
